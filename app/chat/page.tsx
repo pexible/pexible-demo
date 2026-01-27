@@ -193,10 +193,10 @@ export default function ChatPage() {
     setShowModal(false)
     setRegistrationData(null)
 
-    // Add a message to the chat confirming registration
+    // Add a system message to continue the conversation
     await append({
       role: 'user',
-      content: `[Registrierung erfolgreich abgeschlossen. Search-ID: ${result.search_id}]`
+      content: `Meine Registrierung war erfolgreich! Meine Search-ID ist: ${result.search_id}. Bitte prüfe jetzt ob es Ergebnisse für meine Suche gibt.`
     })
   }
 
