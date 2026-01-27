@@ -1,17 +1,30 @@
 import fs from 'fs/promises'
 import path from 'path'
 
-// Always use cwd/data - this is the primary and only data directory
-// This ensures consistency across all API routes and server restarts
-const DATA_DIR = path.join(process.cwd(), 'data')
+// Detect Vercel/serverless environment where filesystem is read-only
+// On Vercel, process.cwd() returns /var/task which is read-only
+// Only /tmp is writable in serverless environments
+function isServerless(): boolean {
+  return process.env.VERCEL === '1' || process.cwd().startsWith('/var/task')
+}
+
+// Get the appropriate data directory - NO CACHING to ensure consistency
+// across all API routes and Lambda invocations
+function getDataDir(): string {
+  if (isServerless()) {
+    return '/tmp/pexible-data'
+  }
+  return path.join(process.cwd(), 'data')
+}
 
 async function ensureDataDir(): Promise<string> {
+  const dir = getDataDir()
   try {
-    await fs.access(DATA_DIR)
+    await fs.access(dir)
   } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true })
+    await fs.mkdir(dir, { recursive: true })
   }
-  return DATA_DIR
+  return dir
 }
 
 export async function readJSON<T>(filename: string, defaultValue: T): Promise<T> {
