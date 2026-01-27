@@ -21,11 +21,11 @@ const handler = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.id = user.id
+      if (user) (token as Record<string, unknown>).id = user.id
       return token
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = token.id as string
+      if (session.user) (session.user as Record<string, unknown>).id = token.id
       return session
     }
   }
