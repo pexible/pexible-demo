@@ -1,7 +1,37 @@
 import { NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import bcrypt from 'bcryptjs'
-import { getUsers, saveUsers, getSearches, saveSearches, type User, type Search } from '@/lib/storage'
+import { getUsers, saveUsers, getSearches, saveSearches, getResults, saveResults, type User, type Search, type Result } from '@/lib/storage'
+
+// Demo companies for synthetic results
+const DEMO_COMPANIES = [
+  { name: 'Siemens AG', domain: 'siemens.com' },
+  { name: 'BMW Group', domain: 'bmw.com' },
+  { name: 'SAP SE', domain: 'sap.com' },
+  { name: 'Deutsche Bank', domain: 'deutsche-bank.de' },
+  { name: 'Bosch', domain: 'bosch.com' },
+  { name: 'Allianz', domain: 'allianz.com' },
+  { name: 'Mercedes-Benz', domain: 'mercedes-benz.com' },
+  { name: 'Volkswagen', domain: 'volkswagen.de' },
+  { name: 'BASF', domain: 'basf.com' },
+  { name: 'Bayer AG', domain: 'bayer.com' },
+]
+
+function generateDemoResults(searchId: string, jobTitle: string, postalCode: string): Result[] {
+  // Shuffle and pick 7-10 companies
+  const shuffled = [...DEMO_COMPANIES].sort(() => Math.random() - 0.5)
+  const count = 7 + Math.floor(Math.random() * 4) // 7-10 results
+
+  return shuffled.slice(0, count).map((company, index) => ({
+    id: nanoid(),
+    search_id: searchId,
+    company_name: company.name,
+    job_title: jobTitle,
+    job_url: `https://careers.${company.domain}/jobs/${nanoid(8)}`,
+    description: `${jobTitle} gesucht in ${postalCode}. ${company.name} bietet eine spannende Position mit attraktiven Konditionen.`,
+    rank: index + 1
+  }))
+}
 
 export async function POST(req: Request) {
   try {
@@ -65,13 +95,23 @@ export async function POST(req: Request) {
       user_id: user.id,
       job_title,
       postal_code,
-      status: 'pending',
+      status: 'completed',
       paid: false,
       total_results: 0,
       created_at: new Date().toISOString()
     }
 
     searchesData.searches.push(search)
+    await saveSearches(searchesData)
+
+    // Generate demo results for this search
+    const demoResults = generateDemoResults(search.id, job_title, postal_code)
+    const resultsData = await getResults()
+    resultsData.results.push(...demoResults)
+    await saveResults(resultsData)
+
+    // Update search with result count
+    search.total_results = demoResults.length
     await saveSearches(searchesData)
 
     return NextResponse.json({
