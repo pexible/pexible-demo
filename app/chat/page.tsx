@@ -1,15 +1,204 @@
 'use client'
 
 import { useChat } from 'ai/react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+interface RegistrationData {
+  email: string
+  first_name: string
+  job_title: string
+  postal_code: string
+}
+
+interface RegistrationModalProps {
+  isOpen: boolean
+  data: RegistrationData | null
+  onClose: () => void
+  onSuccess: (result: { search_id: string; first_name: string }) => void
+}
+
+function RegistrationModal({ isOpen, data, onClose, onSuccess }: RegistrationModalProps) {
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (password.length < 8) {
+      setError('Passwort muss mindestens 8 Zeichen haben')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwörter stimmen nicht überein')
+      return
+    }
+
+    if (!data) return
+
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          password
+        })
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        setError(result.error || 'Fehler bei der Registrierung')
+        setIsLoading(false)
+        return
+      }
+
+      onSuccess({ search_id: result.search_id, first_name: result.first_name })
+      setPassword('')
+      setConfirmPassword('')
+    } catch {
+      setError('Netzwerkfehler. Bitte versuche es erneut.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!isOpen || !data) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Sichere Registrierung</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Erstelle dein Passwort, um deine Jobsuche zu starten
+          </p>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Deine Suchdaten:</h3>
+          <div className="space-y-1 text-sm text-gray-600">
+            <p><span className="font-medium">Stelle:</span> {data.job_title}</p>
+            <p><span className="font-medium">PLZ:</span> {data.postal_code}</p>
+            <p><span className="font-medium">Name:</span> {data.first_name}</p>
+            <p><span className="font-medium">Email:</span> {data.email}</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Passwort
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Mindestens 8 Zeichen"
+              required
+              minLength={8}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              Passwort bestätigen
+            </label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Passwort wiederholen"
+              required
+              minLength={8}
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors"
+          >
+            {isLoading ? 'Wird erstellt...' : 'Account erstellen & Suche starten'}
+          </button>
+        </form>
+
+        <p className="text-xs text-gray-500 text-center mt-4">
+          Mit der Registrierung akzeptierst du unsere AGB und Datenschutzrichtlinien.
+        </p>
+      </div>
+    </div>
+  )
+}
 
 export default function ChatPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat()
+  const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const [showModal, setShowModal] = useState(false)
+  const [registrationData, setRegistrationData] = useState<RegistrationData | null>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Check for registration modal trigger in tool invocations
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage?.role === 'assistant' && lastMessage.toolInvocations) {
+      for (const invocation of lastMessage.toolInvocations) {
+        if (
+          invocation.toolName === 'request_registration' &&
+          invocation.state === 'result' &&
+          invocation.result?.action === 'show_registration_modal'
+        ) {
+          setRegistrationData(invocation.result.data)
+          setShowModal(true)
+        }
+      }
+    }
+  }, [messages])
+
+  const handleRegistrationSuccess = async (result: { search_id: string; first_name: string }) => {
+    setShowModal(false)
+    setRegistrationData(null)
+
+    // Add a message to the chat confirming registration
+    await append({
+      role: 'user',
+      content: `[Registrierung erfolgreich abgeschlossen. Search-ID: ${result.search_id}]`
+    })
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -29,7 +218,7 @@ export default function ChatPage() {
               <p className="text-sm mt-2">Dein Job-Makler hilft dir, passende Stellen zu finden.</p>
             </div>
           )}
-          
+
           {messages.map((message) => (
             <div
               key={message.id}
@@ -48,7 +237,7 @@ export default function ChatPage() {
               </div>
             </div>
           ))}
-          
+
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border">
@@ -60,7 +249,7 @@ export default function ChatPage() {
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -86,6 +275,17 @@ export default function ChatPage() {
           </div>
         </form>
       </div>
+
+      {/* Registration Modal */}
+      <RegistrationModal
+        isOpen={showModal}
+        data={registrationData}
+        onClose={() => {
+          setShowModal(false)
+          setRegistrationData(null)
+        }}
+        onSuccess={handleRegistrationSuccess}
+      />
     </div>
   )
 }
