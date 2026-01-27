@@ -2,8 +2,7 @@ import { openai } from '@ai-sdk/openai'
 import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import bcrypt from 'bcryptjs'
-import { getUsers, saveUsers, getSearches, saveSearches, getResults, type User, type Search } from '@/lib/storage'
+import { getSearches, saveSearches, getResults, type Search } from '@/lib/storage'
 
 export const maxDuration = 30
 
@@ -14,60 +13,19 @@ export async function POST(req: Request) {
     model: openai('gpt-4o'),
     messages,
     tools: {
-      create_account: tool({
-        description: 'Erstellt einen neuen Account mit allen gesammelten Daten',
+      request_registration: tool({
+        description: 'Fordert den Nutzer auf, sich über das sichere Registrierungsformular anzumelden. Wird aufgerufen wenn job_title, postal_code, first_name und email gesammelt wurden.',
         parameters: z.object({
           email: z.string().email(),
-          password: z.string().min(8),
           first_name: z.string().min(2),
           job_title: z.string().min(3),
           postal_code: z.string().regex(/^\d{5}$/)
         }),
         execute: async (params) => {
-          try {
-            const usersData = await getUsers()
-            
-            // Check if email exists
-            if (usersData.users.find(u => u.email === params.email)) {
-              return { success: false, error: 'Email bereits registriert' }
-            }
-
-            // Create user
-            const user: User = {
-              id: nanoid(),
-              email: params.email,
-              password_hash: await bcrypt.hash(params.password, 10),
-              first_name: params.first_name,
-              created_at: new Date().toISOString()
-            }
-            
-            usersData.users.push(user)
-            await saveUsers(usersData)
-
-            // Create search
-            const searchesData = await getSearches()
-            const search: Search = {
-              id: nanoid(),
-              user_id: user.id,
-              job_title: params.job_title,
-              postal_code: params.postal_code,
-              status: 'pending',
-              paid: false,
-              total_results: 0,
-              created_at: new Date().toISOString()
-            }
-            
-            searchesData.searches.push(search)
-            await saveSearches(searchesData)
-
-            return {
-              success: true,
-              user_id: user.id,
-              search_id: search.id,
-              message: `Account erstellt! Deine Suche-ID: ${search.id}`
-            }
-          } catch (error) {
-            return { success: false, error: 'Fehler beim Erstellen des Accounts' }
+          return {
+            action: 'show_registration_modal',
+            data: params,
+            message: 'Bitte vervollständige deine Registrierung im sicheren Formular.'
           }
         }
       }),
@@ -161,30 +119,63 @@ export async function POST(req: Request) {
 
 DEIN PROZESS:
 1. Begrüße den Nutzer freundlich und erkläre, dass du ihm hilfst, passende Jobs zu finden
-2. Sammle folgende Informationen im Gespräch (natürlich, nicht wie ein Formular):
-   - Welche Stelle sucht die Person? (job_title)
-   - In welcher Region? (postal_code - 5-stellig)
+
+2. SAMMLE DIE STELLENBEZEICHNUNG (job_title) - SEI SEHR PRÄZISE:
+   - Frage zuerst nach dem Berufsfeld/Bereich
+   - Bei VAGEN ANTWORTEN wie Branchennamen MUSST du IMMER nachbohren:
+
+     "Finanzwesen/Finance" → "Super! Welche konkrete Position suchst du? Z.B. Controller, Buchhalter, Finanzanalyst, CFO, Steuerberater, Wirtschaftsprüfer?"
+     "IT" → "Verstehe! Welche IT-Rolle genau? Z.B. Softwareentwickler, DevOps Engineer, IT-Administrator, Data Scientist, Product Manager, IT-Consultant?"
+     "Marketing" → "Interessant! Welcher Marketing-Bereich? Z.B. Marketing Manager, SEO-Spezialist, Content Manager, Social Media Manager, Brand Manager?"
+     "Vertrieb/Sales" → "Klasse! Welche Vertriebsposition? Z.B. Account Manager, Sales Manager, Key Account Manager, Vertriebsleiter, Business Development?"
+     "HR/Personal" → "Gut! Welche HR-Funktion? Z.B. Recruiter, HR Business Partner, Personalreferent, HR Manager, Talent Acquisition?"
+     "Gesundheit" → "Welcher Bereich genau? Z.B. Krankenpfleger, Arzt, Physiotherapeut, Medizinische Fachangestellte, Pflegedienstleitung?"
+     "Ingenieur" → "Welche Fachrichtung? Z.B. Maschinenbauingenieur, Elektroingenieur, Bauingenieur, Verfahrenstechniker, Projektingenieur?"
+
+   - Stelle 2-3 Follow-up-Fragen bis du eine EXAKTE Stellenbezeichnung hast
+   - Die Stellenbezeichnung muss so spezifisch sein, wie sie auf einer Unternehmenswebsite stehen würde
+   - Beispiele für GUTE finale Titel: "Senior Softwareentwickler Java", "Key Account Manager DACH", "Controller mit SAP-Erfahrung"
+   - Beispiele für ZU VAGE (nicht akzeptieren): "IT", "Marketing", "irgendwas mit Finanzen"
+
+3. SAMMLE DEN ORT (postal_code) - SEI PRÄZISE:
+   - Frage nach dem gewünschten Arbeitsort
+   - Bei vagen Antworten wie "Süddeutschland", "Bayern", "Raum Frankfurt" MUSST du nachfragen:
+     "In welcher Stadt oder welchem Umkreis genau? Gib mir bitte eine konkrete Stadt oder Postleitzahl."
+   - Akzeptiere: 5-stellige PLZ ODER konkreten Stadtnamen (dann schätze die PLZ)
+   - Beispiele für Konvertierung:
+     "München" → "80331"
+     "Berlin" → "10115"
+     "Hamburg" → "20095"
+     "Frankfurt" → "60311"
+     "Köln" → "50667"
+
+4. Sammle persönliche Daten:
    - Vorname (first_name)
    - Email (email)
-   - Passwort für den Account (password - mindestens 8 Zeichen)
+   - FRAGE NIEMALS NACH DEM PASSWORT IM CHAT!
 
-3. Wenn du ALLE Daten hast, rufe create_account() auf
+5. Wenn du job_title, postal_code, first_name und email hast:
+   - Rufe request_registration() auf
+   - Das öffnet ein sicheres Modal für die Passwort-Eingabe
+   - Sage: "Perfekt! Bitte vervollständige jetzt deine Registrierung im sicheren Formular, das sich gerade öffnet."
 
-4. Nach erfolgreicher Account-Erstellung:
+6. Nach erfolgreicher Registrierung (du erhältst eine search_id):
    - Erkläre, dass die Suche jetzt läuft
    - Nutze check_results() mit der erhaltenen search_id
    - Wenn Ergebnisse da sind, zeige die 3 Freemium-Treffer
 
-5. Biete an, alle Ergebnisse für €49 freizuschalten
+7. Biete an, alle Ergebnisse für €49 freizuschalten
    - Bei Zustimmung: create_payment() aufrufen
    - Zeige dann ALLE Ergebnisse an
 
 WICHTIG:
 - Sei conversational, nicht roboterhaft
+- BEI VAGEN JOB-ANGABEN: IMMER nachbohren mit konkreten Beispielen
+- BEI VAGEN ORTSANGABEN: IMMER nach konkreter Stadt/PLZ fragen
 - Validiere Eingaben (PLZ muss 5 Ziffern sein, Email muss @ enthalten, etc.)
-- Wenn Daten fehlen, frage freundlich nach
 - Formatiere Ergebnisse übersichtlich mit Firmennamen und Links
-- Bei Freemium: Weise darauf hin, dass noch X weitere Treffer verfügbar sind`
+- Bei Freemium: Weise darauf hin, dass noch X weitere Treffer verfügbar sind
+- NIEMALS nach Passwort im Chat fragen - das wird sicher über das Modal gehandhabt`
   })
 
   return result.toDataStreamResponse()
