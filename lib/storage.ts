@@ -1,19 +1,48 @@
 import fs from 'fs/promises'
 import path from 'path'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
+// Try cwd/data first, fallback to /tmp/pexible-data for serverless environments
+const PRIMARY_DATA_DIR = path.join(process.cwd(), 'data')
+const FALLBACK_DATA_DIR = '/tmp/pexible-data'
 
-async function ensureDataDir(): Promise<void> {
+let activeDataDir: string | null = null
+
+async function getDataDir(): Promise<string> {
+  if (activeDataDir) return activeDataDir
+
+  // Try primary directory first
   try {
-    await fs.access(DATA_DIR)
+    await fs.access(PRIMARY_DATA_DIR, fs.constants.W_OK)
+    activeDataDir = PRIMARY_DATA_DIR
+    return activeDataDir
   } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true })
+    // Primary not writable, use fallback
+    try {
+      await fs.mkdir(FALLBACK_DATA_DIR, { recursive: true })
+      activeDataDir = FALLBACK_DATA_DIR
+      return activeDataDir
+    } catch {
+      // If even /tmp fails, try primary anyway
+      activeDataDir = PRIMARY_DATA_DIR
+      return activeDataDir
+    }
   }
+}
+
+async function ensureDataDir(): Promise<string> {
+  const dir = await getDataDir()
+  try {
+    await fs.access(dir)
+  } catch {
+    await fs.mkdir(dir, { recursive: true })
+  }
+  return dir
 }
 
 export async function readJSON<T>(filename: string, defaultValue: T): Promise<T> {
   try {
-    const filePath = path.join(DATA_DIR, filename)
+    const dir = await getDataDir()
+    const filePath = path.join(dir, filename)
     const data = await fs.readFile(filePath, 'utf-8')
     return JSON.parse(data)
   } catch {
@@ -23,8 +52,8 @@ export async function readJSON<T>(filename: string, defaultValue: T): Promise<T>
 }
 
 export async function writeJSON<T>(filename: string, data: T): Promise<void> {
-  await ensureDataDir()
-  const filePath = path.join(DATA_DIR, filename)
+  const dir = await ensureDataDir()
+  const filePath = path.join(dir, filename)
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8')
 }
 

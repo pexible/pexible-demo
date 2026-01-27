@@ -83,8 +83,9 @@ export async function POST(req: Request) {
     })
   } catch (error) {
     console.error('Registration error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { success: false, error: 'Fehler beim Erstellen des Accounts' },
+      { success: false, error: `Fehler: ${errorMessage}` },
       { status: 500 }
     )
   }
