@@ -3,13 +3,27 @@ import path from 'path'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 
-export async function readJSON<T>(filename: string): Promise<T> {
-  const filePath = path.join(DATA_DIR, filename)
-  const data = await fs.readFile(filePath, 'utf-8')
-  return JSON.parse(data)
+async function ensureDataDir(): Promise<void> {
+  try {
+    await fs.access(DATA_DIR)
+  } catch {
+    await fs.mkdir(DATA_DIR, { recursive: true })
+  }
+}
+
+export async function readJSON<T>(filename: string, defaultValue: T): Promise<T> {
+  try {
+    const filePath = path.join(DATA_DIR, filename)
+    const data = await fs.readFile(filePath, 'utf-8')
+    return JSON.parse(data)
+  } catch {
+    // File doesn't exist or is invalid, return default
+    return defaultValue
+  }
 }
 
 export async function writeJSON<T>(filename: string, data: T): Promise<void> {
+  await ensureDataDir()
   const filePath = path.join(DATA_DIR, filename)
   await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8')
 }
@@ -44,7 +58,7 @@ export type Result = {
 }
 
 export async function getUsers(): Promise<{ users: User[] }> {
-  return readJSON('users.json')
+  return readJSON('users.json', { users: [] })
 }
 
 export async function saveUsers(data: { users: User[] }): Promise<void> {
@@ -52,7 +66,7 @@ export async function saveUsers(data: { users: User[] }): Promise<void> {
 }
 
 export async function getSearches(): Promise<{ searches: Search[] }> {
-  return readJSON('searches.json')
+  return readJSON('searches.json', { searches: [] })
 }
 
 export async function saveSearches(data: { searches: Search[] }): Promise<void> {
@@ -60,7 +74,7 @@ export async function saveSearches(data: { searches: Search[] }): Promise<void> 
 }
 
 export async function getResults(): Promise<{ results: Result[] }> {
-  return readJSON('results.json')
+  return readJSON('results.json', { results: [] })
 }
 
 export async function saveResults(data: { results: Result[] }): Promise<void> {
