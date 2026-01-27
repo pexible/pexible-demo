@@ -1,36 +1,6 @@
 import NextAuth from 'next-auth'
-import CredentialsProvider from 'next-auth/providers/credentials'
+import { authOptions } from '@/lib/auth'
 
-const handler = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: 'jwt' },
-  providers: [
-    CredentialsProvider({
-      name: 'Demo Access',
-      credentials: {
-        password: { label: 'Password', type: 'password' }
-      },
-      async authorize(credentials) {
-        if (credentials?.password === process.env.DEMO_PASSWORD) {
-          return { id: 'demo', name: 'Demo User' }
-        }
-        return null
-      }
-    })
-  ],
-  pages: {
-    signIn: '/login'
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) (token as Record<string, unknown>).id = user.id
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user) (session.user as Record<string, unknown>).id = token.id
-      return session
-    }
-  }
-})
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }
