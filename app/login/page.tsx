@@ -11,12 +11,13 @@ export default function LoginPage() {
     e.preventDefault()
     const result = await signIn('credentials', {
       password,
-      redirect: true,
-      callbackUrl: '/chat'
+      redirect: false,
     })
-    
+
     if (result?.error) {
       setError('Falsches Passwort')
+    } else {
+      window.location.href = '/chat'
     }
   }
 

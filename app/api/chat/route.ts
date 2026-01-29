@@ -7,7 +7,15 @@ import { getSearches, saveSearches, getResults, type Search } from '@/lib/storag
 export const maxDuration = 30
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const body = await req.json()
+  const { messages } = body
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response(JSON.stringify({ error: 'messages array is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 
   const result = streamText({
     model: openai('gpt-4o'),
@@ -55,12 +63,26 @@ export async function POST(req: Request) {
               }
             }
 
+            if (search.paid) {
+              return {
+                found: true,
+                paid: true,
+                total_results: searchResults.length,
+                all_results: searchResults.map(r => ({
+                  company: r.company_name,
+                  title: r.job_title,
+                  url: r.job_url,
+                  description: r.description
+                }))
+              }
+            }
+
             const freemiumResults = searchResults.slice(0, 3)
             const paidResults = searchResults.slice(3)
 
             return {
               found: true,
-              paid: search.paid,
+              paid: false,
               total_results: searchResults.length,
               freemium_results: freemiumResults.map(r => ({
                 company: r.company_name,
