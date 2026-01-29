@@ -116,6 +116,13 @@ export async function POST(req: Request) {
       user_id: user.id,
       search_id: search.id,
       first_name: user.first_name,
+      total_results: demoResults.length,
+      results: demoResults.map(r => ({
+        company_name: r.company_name,
+        job_title: r.job_title,
+        job_url: r.job_url,
+        description: r.description
+      })),
       message: `Account erstellt! Deine Suche-ID: ${search.id}`
     })
   } catch (error) {

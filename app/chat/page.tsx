@@ -14,7 +14,7 @@ interface RegistrationModalProps {
   isOpen: boolean
   data: RegistrationData | null
   onClose: () => void
-  onSuccess: (result: { search_id: string; first_name: string }) => void
+  onSuccess: (result: { search_id: string; first_name: string; total_results: number; results: Array<{ company_name: string; job_title: string; job_url: string; description: string }> }) => void
 }
 
 function RegistrationModal({ isOpen, data, onClose, onSuccess }: RegistrationModalProps) {
@@ -59,7 +59,7 @@ function RegistrationModal({ isOpen, data, onClose, onSuccess }: RegistrationMod
         return
       }
 
-      onSuccess({ search_id: result.search_id, first_name: result.first_name })
+      onSuccess({ search_id: result.search_id, first_name: result.first_name, total_results: result.total_results, results: result.results })
       setPassword('')
       setConfirmPassword('')
     } catch {
@@ -189,14 +189,34 @@ export default function ChatPage() {
     }
   }, [messages])
 
-  const handleRegistrationSuccess = async (result: { search_id: string; first_name: string }) => {
+  const handleRegistrationSuccess = async (result: { search_id: string; first_name: string; total_results: number; results: Array<{ company_name: string; job_title: string; job_url: string; description: string }> }) => {
     setShowModal(false)
     setRegistrationData(null)
 
-    // Add a system message to continue the conversation
+    const freemium = result.results.slice(0, 3)
+    const locked = result.results.slice(3)
+
+    const freemiumText = freemium.map((r, i) =>
+      `${i + 1}. ${r.company_name} - ${r.job_title} (${r.job_url})`
+    ).join('\n')
+
+    const lockedText = locked.map((r, i) =>
+      `${i + 4}. ${r.company_name} - ${r.job_title} (${r.job_url}) - ${r.description}`
+    ).join('\n')
+
     await append({
       role: 'user',
-      content: `Meine Registrierung war erfolgreich! Meine Search-ID ist: ${result.search_id}. Bitte prüfe jetzt ob es Ergebnisse für meine Suche gibt.`
+      content: `Meine Registrierung war erfolgreich! Meine Search-ID ist: ${result.search_id}.
+
+SUCHERGEBNISSE (${result.total_results} Treffer gefunden):
+
+Kostenlose Vorschau (3 von ${result.total_results}):
+${freemiumText}
+
+GESPERRTE ERGEBNISSE (nur nach Zahlung anzeigen):
+${lockedText}
+
+Bitte zeige mir die 3 kostenlosen Ergebnisse und biete mir an, die restlichen ${locked.length} Treffer für 49€ freizuschalten. Zeige die gesperrten Ergebnisse ERST nach erfolgreicher Zahlung über create_payment.`
     })
   }
 
