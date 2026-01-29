@@ -29,9 +29,10 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Search not found' }, { status: 404 })
     }
 
-    // Save results
+    // Remove any existing results for this search before adding new ones
     const resultsData = await getResults()
-    
+    resultsData.results = resultsData.results.filter(r => r.search_id !== searchId)
+
     uploadedResults.forEach((result, index) => {
       const newResult: Result = {
         id: nanoid(),

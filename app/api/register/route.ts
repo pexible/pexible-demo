@@ -88,31 +88,28 @@ export async function POST(req: Request) {
     usersData.users.push(user)
     await saveUsers(usersData)
 
-    // Create search
-    const searchesData = await getSearches()
+    // Create search and generate demo results before saving
+    const searchId = nanoid()
+    const demoResults = generateDemoResults(searchId, job_title, postal_code)
+
     const search: Search = {
-      id: nanoid(),
+      id: searchId,
       user_id: user.id,
       job_title,
       postal_code,
       status: 'completed',
       paid: false,
-      total_results: 0,
+      total_results: demoResults.length,
       created_at: new Date().toISOString()
     }
 
+    const searchesData = await getSearches()
     searchesData.searches.push(search)
     await saveSearches(searchesData)
 
-    // Generate demo results for this search
-    const demoResults = generateDemoResults(search.id, job_title, postal_code)
     const resultsData = await getResults()
     resultsData.results.push(...demoResults)
     await saveResults(resultsData)
-
-    // Update search with result count
-    search.total_results = demoResults.length
-    await saveSearches(searchesData)
 
     return NextResponse.json({
       success: true,
