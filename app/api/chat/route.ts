@@ -20,6 +20,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai('gpt-4o'),
     messages,
+    maxSteps: 5,
     tools: {
       request_registration: tool({
         description: 'Fordert den Nutzer auf, sich über das sichere Registrierungsformular anzumelden. Wird aufgerufen wenn job_title, postal_code, first_name und email gesammelt wurden.',
