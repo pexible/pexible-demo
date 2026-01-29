@@ -99,41 +99,27 @@ export async function POST(req: Request) {
       }),
 
       create_payment: tool({
-        description: 'Erstellt einen Stripe Payment Link für €49',
+        description: 'Simuliert die Zahlung von €49 und schaltet alle Ergebnisse frei. Nach Erfolg zeige dem Nutzer ALLE Ergebnisse aus dem Chatverlauf.',
         parameters: z.object({
           search_id: z.string()
         }),
         execute: async ({ search_id }) => {
           // In Demo: Simuliere Zahlung direkt
           try {
+            // Try to update file storage (works locally, may fail on Vercel)
             const searchesData = await getSearches()
             const searchIndex = searchesData.searches.findIndex(s => s.id === search_id)
-            
-            if (searchIndex === -1) {
-              return { success: false, error: 'Suche nicht gefunden' }
+            if (searchIndex !== -1) {
+              searchesData.searches[searchIndex].paid = true
+              await saveSearches(searchesData)
             }
+          } catch {
+            // Storage may not be available on serverless - that's OK
+          }
 
-            // Für Demo: Direkt auf paid setzen
-            searchesData.searches[searchIndex].paid = true
-            await saveSearches(searchesData)
-
-            const resultsData = await getResults()
-            const allResults = resultsData.results
-              .filter(r => r.search_id === search_id)
-              .map(r => ({
-                company: r.company_name,
-                title: r.job_title,
-                url: r.job_url,
-                description: r.description
-              }))
-
-            return {
-              success: true,
-              message: 'Zahlung erfolgreich! (Demo-Modus)',
-              all_results: allResults
-            }
-          } catch (error) {
-            return { success: false, error: 'Fehler bei der Zahlung' }
+          return {
+            success: true,
+            message: 'Zahlung erfolgreich! (Demo-Modus) Alle Ergebnisse sind jetzt freigeschaltet. Zeige dem Nutzer jetzt ALLE Ergebnisse die im Chatverlauf unter SUCHERGEBNISSE aufgelistet wurden - inklusive Firmennamen, Jobtitel, URL und Beschreibung.'
           }
         }
       })
@@ -182,14 +168,15 @@ DEIN PROZESS:
    - Das öffnet ein sicheres Modal für die Passwort-Eingabe
    - Sage: "Perfekt! Bitte vervollständige jetzt deine Registrierung im sicheren Formular, das sich gerade öffnet."
 
-6. Nach erfolgreicher Registrierung (du erhältst eine search_id):
-   - Erkläre, dass die Suche jetzt läuft
-   - Nutze check_results() mit der erhaltenen search_id
-   - Wenn Ergebnisse da sind, zeige die 3 Freemium-Treffer
+6. Nach erfolgreicher Registrierung:
+   - Der Nutzer sendet eine Nachricht mit seiner Search-ID und den SUCHERGEBNISSEN
+   - Die Ergebnisse sind DIREKT in der Nachricht enthalten (NICHT check_results aufrufen!)
+   - Zeige die 3 kostenlosen Vorschau-Ergebnisse übersichtlich an mit Firma, Jobtitel und Link
+   - RUFE NICHT check_results() AUF - die Ergebnisse stehen bereits in der Nachricht!
 
-7. Biete an, alle Ergebnisse für €49 freizuschalten
+7. Biete an, alle Ergebnisse für 49€ freizuschalten
    - Bei Zustimmung: create_payment() aufrufen
-   - Zeige dann ALLE Ergebnisse an
+   - Nach erfolgreicher Zahlung: Zeige dem Nutzer ALLE Ergebnisse die in der ursprünglichen SUCHERGEBNISSE-Nachricht standen
 
 WICHTIG:
 - Sei conversational, nicht roboterhaft
