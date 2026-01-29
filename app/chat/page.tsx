@@ -204,19 +204,10 @@ export default function ChatPage() {
       `${i + 4}. ${r.company_name} - ${r.job_title} (${r.job_url}) - ${r.description}`
     ).join('\n')
 
+    // The marker separates the user-visible part from AI-only data
     await append({
       role: 'user',
-      content: `Meine Registrierung war erfolgreich! Meine Search-ID ist: ${result.search_id}.
-
-SUCHERGEBNISSE (${result.total_results} Treffer gefunden):
-
-Kostenlose Vorschau (3 von ${result.total_results}):
-${freemiumText}
-
-GESPERRTE ERGEBNISSE (nur nach Zahlung anzeigen):
-${lockedText}
-
-Bitte zeige mir die 3 kostenlosen Ergebnisse und biete mir an, die restlichen ${locked.length} Treffer für 49€ freizuschalten. Zeige die gesperrten Ergebnisse ERST nach erfolgreicher Zahlung über create_payment.`
+      content: `Meine Registrierung war erfolgreich! Bitte zeige mir meine Ergebnisse.\n<!--RESULTS_DATA\nSearch-ID: ${result.search_id}\nSUCHERGEBNISSE (${result.total_results} Treffer gefunden):\n\nKostenlose Vorschau (3 von ${result.total_results}):\n${freemiumText}\n\nGESPERRTE ERGEBNISSE (nur nach Zahlung anzeigen):\n${lockedText}\n\nZeige die 3 kostenlosen Ergebnisse und biete an, die restlichen ${locked.length} Treffer für 49€ freizuschalten. Zeige die gesperrten Ergebnisse ERST nach erfolgreicher Zahlung über create_payment.\nRESULTS_DATA-->`
     })
   }
 
@@ -252,7 +243,9 @@ Bitte zeige mir die 3 kostenlosen Ergebnisse und biete mir an, die restlichen ${
                 }`}
               >
                 <div className="whitespace-pre-wrap break-words">
-                  {message.content}
+                  {message.content.includes('<!--RESULTS_DATA')
+                    ? message.content.split('<!--RESULTS_DATA')[0].trim()
+                    : message.content}
                 </div>
               </div>
             </div>
