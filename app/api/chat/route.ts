@@ -99,27 +99,15 @@ export async function POST(req: Request) {
       }),
 
       create_payment: tool({
-        description: 'Simuliert die Zahlung von €49 und schaltet alle Ergebnisse frei. Nach Erfolg zeige dem Nutzer ALLE Ergebnisse aus dem Chatverlauf.',
+        description: 'Öffnet den sicheren Stripe-Zahlungsdialog für €49. Nach Aufruf wird ein Zahlungsformular angezeigt.',
         parameters: z.object({
           search_id: z.string()
         }),
         execute: async ({ search_id }) => {
-          // In Demo: Simuliere Zahlung direkt
-          try {
-            // Try to update file storage (works locally, may fail on Vercel)
-            const searchesData = await getSearches()
-            const searchIndex = searchesData.searches.findIndex(s => s.id === search_id)
-            if (searchIndex !== -1) {
-              searchesData.searches[searchIndex].paid = true
-              await saveSearches(searchesData)
-            }
-          } catch {
-            // Storage may not be available on serverless - that's OK
-          }
-
           return {
-            success: true,
-            message: 'Zahlung erfolgreich! (Demo-Modus) Alle Ergebnisse sind jetzt freigeschaltet. Zeige dem Nutzer jetzt ALLE Ergebnisse die im Chatverlauf unter SUCHERGEBNISSE aufgelistet wurden - inklusive Firmennamen, Jobtitel, URL und Beschreibung.'
+            action: 'show_payment_modal',
+            search_id,
+            message: 'Bitte schließe die Zahlung im sicheren Stripe-Formular ab.'
           }
         }
       })
@@ -176,7 +164,10 @@ DEIN PROZESS:
 
 7. Biete an, alle Ergebnisse für 49€ freizuschalten
    - Bei Zustimmung: create_payment() aufrufen
-   - Nach erfolgreicher Zahlung: Zeige dem Nutzer ALLE Ergebnisse die in der ursprünglichen SUCHERGEBNISSE-Nachricht standen
+   - Das öffnet einen sicheren Stripe-Zahlungsdialog
+   - Sage: "Perfekt! Bitte schließe die Zahlung im sicheren Stripe-Formular ab, das sich gerade öffnet."
+   - Nach erfolgreicher Zahlung sendet der Nutzer eine Bestätigung
+   - Zeige dem Nutzer dann ALLE Ergebnisse die in der ursprünglichen SUCHERGEBNISSE-Nachricht standen
 
 WICHTIG:
 - Sei conversational, nicht roboterhaft
