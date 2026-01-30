@@ -4,6 +4,7 @@ import { useChat } from 'ai/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { jsPDF } from 'jspdf'
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -36,44 +37,93 @@ function getVisibleContent(content: string) {
 function generateResultsPdf(results: PdfResult[], jobTitle: string, isComplete: boolean) {
   const title = isComplete ? 'Alle Suchergebnisse' : 'Suchergebnisse (Vorschau)'
   const date = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-  const rows = results.map((r, i) =>
-    `<tr>
-      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${i + 1}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${r.company_name}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;">${r.job_title}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><a href="${r.job_url}" style="color:#2563eb;">${r.job_url}</a></td>
-      ${r.description ? `<td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">${r.description}</td>` : ''}
-    </tr>`
-  ).join('')
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title} - pexible</title></head>
-<body style="font-family:Arial,sans-serif;max-width:900px;margin:0 auto;padding:40px 20px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;border-bottom:2px solid #F5B731;padding-bottom:16px;">
-    <h1 style="margin:0;color:#111;font-size:24px;font-style:italic;">pexible</h1>
-    <span style="color:#6b7280;font-size:14px;">${date}</span>
-  </div>
-  <h2 style="color:#111;font-size:18px;margin-bottom:4px;">${title}</h2>
-  <p style="color:#6b7280;font-size:14px;margin-bottom:24px;">Suche: ${jobTitle} &bull; ${results.length} Treffer</p>
-  <table style="width:100%;border-collapse:collapse;font-size:14px;">
-    <thead><tr style="background:#f9fafb;">
-      <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #e5e7eb;">#</th>
-      <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #e5e7eb;">Unternehmen</th>
-      <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #e5e7eb;">Stelle</th>
-      <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #e5e7eb;">Link</th>
-      ${results[0]?.description ? '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid #e5e7eb;">Details</th>' : ''}
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <p style="margin-top:32px;font-size:12px;color:#9ca3af;text-align:center;">Erstellt von pexible.de &bull; Dein Job-Makler</p>
-</body></html>`
-  const blob = new Blob([html], { type: 'text/html' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `pexible-ergebnisse-${isComplete ? 'komplett' : 'vorschau'}.html`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const margin = 20
+  const contentWidth = pageWidth - margin * 2
+  let y = 20
+
+  // Header
+  doc.setFontSize(20)
+  doc.setFont('helvetica', 'bolditalic')
+  doc.text('pexible', margin, y)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(120, 120, 120)
+  doc.text(date, pageWidth - margin, y, { align: 'right' })
+  y += 4
+  doc.setDrawColor(245, 183, 49)
+  doc.setLineWidth(0.5)
+  doc.line(margin, y, pageWidth - margin, y)
+  y += 12
+
+  // Title
+  doc.setTextColor(0, 0, 0)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text(title, margin, y)
+  y += 6
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(120, 120, 120)
+  doc.text(`Suche: ${jobTitle} \u2022 ${results.length} Treffer`, margin, y)
+  y += 12
+
+  // Table header
+  doc.setFillColor(249, 250, 251)
+  doc.rect(margin, y - 4, contentWidth, 8, 'F')
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(60, 60, 60)
+  doc.text('#', margin + 2, y)
+  doc.text('Unternehmen', margin + 12, y)
+  doc.text('Stelle', margin + 62, y)
+  doc.text('Link / Details', margin + 110, y)
+  y += 2
+  doc.setDrawColor(220, 220, 220)
+  doc.setLineWidth(0.3)
+  doc.line(margin, y, pageWidth - margin, y)
+  y += 6
+
+  // Table rows
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i]
+    if (y > 270) {
+      doc.addPage()
+      y = 20
+    }
+    doc.setTextColor(0, 0, 0)
+    doc.text(`${i + 1}`, margin + 2, y)
+    doc.setFont('helvetica', 'bold')
+    doc.text(r.company_name.substring(0, 28), margin + 12, y)
+    doc.setFont('helvetica', 'normal')
+    doc.text(r.job_title.substring(0, 26), margin + 62, y)
+    doc.setTextColor(37, 99, 235)
+    const urlText = r.job_url.length > 38 ? r.job_url.substring(0, 38) + '...' : r.job_url
+    doc.textWithLink(urlText, margin + 110, y, { url: r.job_url })
+    y += 5
+    if (r.description) {
+      doc.setTextColor(120, 120, 120)
+      doc.setFontSize(8)
+      const descLines = doc.splitTextToSize(r.description, contentWidth - 12)
+      doc.text(descLines.slice(0, 2), margin + 12, y)
+      y += descLines.slice(0, 2).length * 3.5
+      doc.setFontSize(9)
+    }
+    doc.setDrawColor(240, 240, 240)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
+  }
+
+  // Footer
+  y += 8
+  doc.setFontSize(8)
+  doc.setTextColor(160, 160, 160)
+  doc.text('Erstellt von pexible.de \u2022 Dein Job-Makler', pageWidth / 2, y, { align: 'center' })
+
+  doc.save(`pexible-ergebnisse-${isComplete ? 'komplett' : 'vorschau'}.pdf`)
 }
 
 // ─── Registration Modal ───
@@ -257,7 +307,7 @@ export default function ChatPage() {
     ],
   })
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [showModal, setShowModal] = useState(false)
@@ -273,12 +323,13 @@ export default function ChatPage() {
   const [hasPaid, setHasPaid] = useState(false)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = chatContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [messages])
 
   useEffect(() => {
     if (!isLoading && !showModal && !showPaymentModal) {
-      inputRef.current?.focus()
+      inputRef.current?.focus({ preventScroll: true })
     }
   }, [isLoading, showModal, showPaymentModal])
 
@@ -421,7 +472,7 @@ export default function ChatPage() {
               </div>
 
               {/* Chat Messages */}
-              <div className="h-[350px] sm:h-[420px] overflow-y-auto px-4 py-4 scroll-smooth">
+              <div ref={chatContainerRef} className="h-[350px] sm:h-[420px] overflow-y-auto px-4 py-4">
                 <div className="space-y-3">
                   {messages.map((message) => {
                     const visibleContent = getVisibleContent(message.content)
@@ -449,7 +500,6 @@ export default function ChatPage() {
                       </div>
                     </div>
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
