@@ -25,7 +25,13 @@ interface PdfResult {
   description?: string
 }
 
-// ─── PDF Generation ───
+// ─── Helpers ───
+
+function getVisibleContent(content: string) {
+  if (content.includes('<!--RESULTS_DATA')) return content.split('<!--RESULTS_DATA')[0].trim()
+  if (content.includes('<!--PAYMENT_SUCCESS')) return content.split('<!--PAYMENT_SUCCESS')[0].trim()
+  return content
+}
 
 function generateResultsPdf(results: PdfResult[], jobTitle: string, isComplete: boolean) {
   const title = isComplete ? 'Alle Suchergebnisse' : 'Suchergebnisse (Vorschau)'
@@ -87,7 +93,7 @@ function RegistrationModal({ isOpen, data, onClose, onSuccess }: {
     e.preventDefault()
     setError('')
     if (password.length < 8) { setError('Passwort muss mindestens 8 Zeichen haben'); return }
-    if (password !== confirmPassword) { setError('Passwörter stimmen nicht überein'); return }
+    if (password !== confirmPassword) { setError('Passw\u00f6rter stimmen nicht \u00fcberein'); return }
     if (!data) return
     setIsLoading(true)
     try {
@@ -106,38 +112,38 @@ function RegistrationModal({ isOpen, data, onClose, onSuccess }: {
   if (!isOpen || !data) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className="bg-[#1a1a24] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <div className="w-16 h-16 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Sichere Registrierung</h2>
-          <p className="text-sm text-gray-600 mt-1">Erstelle dein Passwort, um deine Jobsuche zu starten</p>
+          <h2 className="text-xl font-bold text-white">Sichere Registrierung</h2>
+          <p className="text-sm text-gray-400 mt-1">Erstelle dein Passwort, um deine Jobsuche zu starten</p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Deine Suchdaten:</h3>
-          <div className="space-y-1 text-sm text-gray-600">
-            <p><span className="font-medium">Stelle:</span> {data.job_title}</p>
-            <p><span className="font-medium">PLZ:</span> {data.postal_code}</p>
-            <p><span className="font-medium">Name:</span> {data.first_name}</p>
-            <p><span className="font-medium">Email:</span> {data.email}</p>
+        <div className="bg-white/5 border border-white/5 rounded-xl p-4 mb-6">
+          <h3 className="text-sm font-medium text-gray-300 mb-2">Deine Suchdaten:</h3>
+          <div className="space-y-1 text-sm text-gray-400">
+            <p><span className="font-medium text-gray-300">Stelle:</span> {data.job_title}</p>
+            <p><span className="font-medium text-gray-300">PLZ:</span> {data.postal_code}</p>
+            <p><span className="font-medium text-gray-300">Name:</span> {data.first_name}</p>
+            <p><span className="font-medium text-gray-300">Email:</span> {data.email}</p>
           </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
-            <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="Mindestens 8 Zeichen" required minLength={8} />
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">Passwort</label>
+            <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5B731]/50 focus:border-[#F5B731]/30 transition-all" placeholder="Mindestens 8 Zeichen" required minLength={8} />
           </div>
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">Passwort bestätigen</label>
-            <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="Passwort wiederholen" required minLength={8} />
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">Passwort best&auml;tigen</label>
+            <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5B731]/50 focus:border-[#F5B731]/30 transition-all" placeholder="Passwort wiederholen" required minLength={8} />
           </div>
-          {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{error}</div>}
-          <button type="submit" disabled={isLoading} className="w-full py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-gray-300 text-black font-semibold rounded-full transition-colors">
+          {error && <div className="bg-red-500/10 text-red-400 border border-red-500/20 text-sm p-3 rounded-xl">{error}</div>}
+          <button type="submit" disabled={isLoading} className="w-full py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-white/10 disabled:text-gray-600 text-black font-semibold rounded-xl transition-colors">
             {isLoading ? 'Wird erstellt...' : 'Account erstellen & Suche starten'}
           </button>
         </form>
@@ -171,11 +177,11 @@ function CheckoutForm({ searchId, onSuccess, onCancel }: { searchId: string; onS
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
-      {error && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{error}</div>}
-      <button type="submit" disabled={isProcessing || !stripe || !elements} className="w-full py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-gray-300 text-black font-semibold rounded-full transition-colors">
+      {error && <div className="bg-red-500/10 text-red-400 border border-red-500/20 text-sm p-3 rounded-xl">{error}</div>}
+      <button type="submit" disabled={isProcessing || !stripe || !elements} className="w-full py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-white/10 disabled:text-gray-600 text-black font-semibold rounded-xl transition-colors">
         {isProcessing ? 'Wird verarbeitet...' : '49,00 \u20AC bezahlen'}
       </button>
-      <button type="button" onClick={onCancel} disabled={isProcessing} className="w-full py-2 text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors">Abbrechen</button>
+      <button type="button" onClick={onCancel} disabled={isProcessing} className="w-full py-2 text-gray-400 hover:text-gray-200 text-sm font-medium transition-colors">Abbrechen</button>
     </form>
   )
 }
@@ -198,37 +204,37 @@ function PaymentModal({ isOpen, searchId, onClose, onSuccess }: { isOpen: boolea
   if (!isOpen || !searchId) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+      <div className="bg-[#1a1a24] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
         <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+          <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Alle Ergebnisse freischalten</h2>
-          <p className="text-sm text-gray-600 mt-1">Sichere Zahlung &uuml;ber Stripe</p>
+          <h2 className="text-xl font-bold text-white">Alle Ergebnisse freischalten</h2>
+          <p className="text-sm text-gray-400 mt-1">Sichere Zahlung &uuml;ber Stripe</p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <div className="bg-white/5 border border-white/5 rounded-xl p-4 mb-6">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-700 font-medium">Alle Suchergebnisse</span>
-            <span className="text-lg font-bold text-gray-900">49,00 &euro;</span>
+            <span className="text-sm text-gray-300 font-medium">Alle Suchergebnisse</span>
+            <span className="text-lg font-bold text-white">49,00 &euro;</span>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Einmalige Zahlung - kein Abo</p>
+          <p className="text-xs text-gray-500 mt-1">Einmalige Zahlung &ndash; kein Abo</p>
         </div>
-        {loadError && <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">{loadError}</div>}
+        {loadError && <div className="bg-red-500/10 text-red-400 border border-red-500/20 text-sm p-3 rounded-xl mb-4">{loadError}</div>}
         {!clientSecret && !loadError && (
           <div className="flex justify-center py-8">
             <div className="flex space-x-2">
-              <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-[#F5B731] rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+              <div className="w-2 h-2 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
             </div>
           </div>
         )}
         {clientSecret && stripePromise && (
-          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#F5B731', borderRadius: '8px' } } }}>
+          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#F5B731', borderRadius: '12px', colorBackground: '#1a1a24', colorText: '#ffffff' } } }}>
             <CheckoutForm searchId={searchId} onSuccess={onSuccess} onCancel={onClose} />
           </Elements>
         )}
@@ -238,103 +244,9 @@ function PaymentModal({ isOpen, searchId, onClose, onSuccess }: { isOpen: boolea
   )
 }
 
-// ─── Website Landing Sections ───
-
-function LandingPage({ onOpenChat }: { onOpenChat: () => void }) {
-  return (
-    <div className="min-h-screen bg-white">
-      {/* Hero */}
-      <section className="px-6 pt-16 pb-20 max-w-4xl mx-auto text-center">
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-black leading-tight tracking-tight">
-          Entdecke Jobs, die<br />andere nicht sehen
-        </h1>
-        <p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-          Finde mehr offene Stellen, bewirb dich gezielter und sichere dir schneller deinen Traumjob &ndash; mit der KI-Plattform, die versteckte Jobchancen sichtbar macht.
-        </p>
-        <button onClick={onOpenChat} className="mt-10 px-10 py-4 bg-[#F5B731] hover:bg-[#e5a820] text-black font-semibold text-lg rounded-full transition-colors shadow-lg shadow-amber-200/50">
-          Jetzt Job-Suche starten f&uuml;r 49&euro;
-        </button>
-      </section>
-
-      {/* Features */}
-      <section className="px-6 py-20 max-w-6xl mx-auto">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="text-4xl sm:text-5xl font-extrabold text-black leading-tight mb-10">
-              So findest du<br />Stellen, die andere<br />&uuml;bersehen
-            </h2>
-            <div className="space-y-6">
-              {[
-                { title: 'Direkt bei Unternehmen suchen:', text: 'Unsere Suche beginnt direkt auf tausenden Karriere-Websites \u2014 ohne Umwege \u00fcber Portale.' },
-                { title: 'KI-Agenten arbeiten f\u00fcr dich:', text: 'Unsere spezialisierten Agenten lesen Seiten wie ein Mensch und finden auch verborgene Hinweise.' },
-                { title: 'Individuelle Empfehlungen:', text: 'Du erh\u00e4ltst nur Jobs, die wirklich zu deinem Profil passen \u2014 keine irrelevanten Anzeigen.' },
-                { title: 'Schneller zum Erfolg:', text: 'Offene Stellen, bevor sie woanders erscheinen \u2014 erh\u00f6he deine Chancen auf Zusagen.' },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-3">
-                  <span className="text-green-500 text-xl flex-shrink-0 mt-0.5">&#9989;</span>
-                  <div>
-                    <p className="font-bold text-black">{item.title}</p>
-                    <p className="text-gray-600">{item.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button onClick={onOpenChat} className="mt-8 px-8 py-3 bg-[#F5B731] hover:bg-[#e5a820] text-black font-semibold rounded-full transition-colors">
-              Starte jetzt deine Suche
-            </button>
-          </div>
-          <div className="hidden md:flex justify-center">
-            <div className="bg-gray-100 rounded-3xl p-8 w-72 h-[480px] flex flex-col items-center justify-center relative">
-              <div className="w-56 h-96 bg-black rounded-[2rem] p-2 shadow-2xl">
-                <div className="w-full h-full bg-gradient-to-b from-sky-100 to-orange-100 rounded-[1.5rem] flex flex-col items-center justify-end pb-8">
-                  <div className="bg-white rounded-xl shadow-lg p-3 mx-4 mb-4 text-xs">
-                    <p className="font-bold text-black">pexible</p>
-                    <p className="text-gray-600 mt-1">Dein neuer Job-Report ist fertig. Wir haben 12 neue Jobs f&uuml;r dich gefunden.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="px-6 py-20 max-w-4xl mx-auto text-center">
-        <h2 className="text-4xl sm:text-5xl font-extrabold text-black leading-tight mb-16">
-          Echte Suchergebnisse.<br />Echte Erfolgsgeschichten.
-        </h2>
-        <div className="grid sm:grid-cols-2 gap-12">
-          {[
-            { name: 'Julia M.', role: 'Marketing Managerin aus Leipzig', quote: '\u201eIch hatte monatelang nichts gefunden, dann hat Pexible mir 9 Firmen geschickt, von denen ich noch nie geh\u00f6rt hatte. Zwei Wochen sp\u00e4ter sa\u00df ich im Bewerbungsgespr\u00e4ch.\u201c' },
-            { name: 'Samir R.', role: 'IT-Spezialist aus Berlin', quote: '\u201eIch war skeptisch, aber der Agent hat tats\u00e4chlich 12 neue Unternehmen gefunden, die genau zu meinem Profil passen. 5 Bewerbungen \u2013 3 R\u00fcckmeldungen in nur einer Woche!\u201c' },
-          ].map((t, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <div className="w-16 h-16 bg-gray-300 rounded-full mb-4"></div>
-              <p className="font-bold text-black">{t.name}</p>
-              <p className="text-sm text-gray-500 mb-4">{t.role}</p>
-              <p className="text-gray-700 leading-relaxed italic">{t.quote}</p>
-            </div>
-          ))}
-        </div>
-        <button onClick={onOpenChat} className="mt-12 px-10 py-4 bg-[#F5B731] hover:bg-[#e5a820] text-black font-semibold text-lg rounded-full transition-colors shadow-lg shadow-amber-200/50">
-          Selber entdecken
-        </button>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200 px-6 py-8 text-center text-sm text-gray-500">
-        <p className="italic text-lg font-semibold text-black mb-2">pexible</p>
-        <p>Dein Job-Makler &bull; KI-gest&uuml;tzte Jobsuche direkt auf Karriereseiten</p>
-      </footer>
-    </div>
-  )
-}
-
 // ─── Main Page ───
 
 export default function ChatPage() {
-  const [chatOpen, setChatOpen] = useState(false)
-
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
     initialMessages: [
       {
@@ -365,10 +277,10 @@ export default function ChatPage() {
   }, [messages])
 
   useEffect(() => {
-    if (!isLoading && chatOpen && !showModal && !showPaymentModal) {
+    if (!isLoading && !showModal && !showPaymentModal) {
       inputRef.current?.focus()
     }
-  }, [isLoading, chatOpen, showModal, showPaymentModal])
+  }, [isLoading, showModal, showPaymentModal])
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1]
@@ -409,7 +321,7 @@ export default function ChatPage() {
     const lockedText = locked.map((r, i) => `${i + 4}. ${r.company_name} - ${r.job_title} (${r.job_url}) - ${r.description}`).join('\n')
     await append({
       role: 'user',
-      content: `Meine Registrierung war erfolgreich! Bitte zeige mir meine Ergebnisse.\n<!--RESULTS_DATA\nSearch-ID: ${result.search_id}\nSUCHERGEBNISSE (${result.total_results} Treffer gefunden):\n\nKostenlose Vorschau (3 von ${result.total_results}):\n${freemiumText}\n\nGESPERRTE ERGEBNISSE (nur nach Zahlung anzeigen):\n${lockedText}\n\nZeige die 3 kostenlosen Ergebnisse und biete an, die restlichen ${locked.length} Treffer für 49€ freizuschalten. Zeige die gesperrten Ergebnisse ERST nach erfolgreicher Zahlung über create_payment.\nRESULTS_DATA-->`
+      content: `Meine Registrierung war erfolgreich! Bitte zeige mir meine Ergebnisse.\n<!--RESULTS_DATA\nSearch-ID: ${result.search_id}\nSUCHERGEBNISSE (${result.total_results} Treffer gefunden):\n\nKostenlose Vorschau (3 von ${result.total_results}):\n${freemiumText}\n\nGESPERRTE ERGEBNISSE (nur nach Zahlung anzeigen):\n${lockedText}\n\nZeige die 3 kostenlosen Ergebnisse und biete an, die restlichen ${locked.length} Treffer f\u00fcr 49\u20AC freizuschalten. Zeige die gesperrten Ergebnisse ERST nach erfolgreicher Zahlung \u00fcber create_payment.\nRESULTS_DATA-->`
     })
   }
 
@@ -420,7 +332,7 @@ export default function ChatPage() {
     setHasPaid(true)
     await append({
       role: 'user',
-      content: `Die Stripe-Zahlung war erfolgreich! Alle Ergebnisse sind jetzt freigeschaltet.\n<!--PAYMENT_SUCCESS search_id=${searchId}-->\nBitte zeige mir jetzt alle Ergebnisse aus der ursprünglichen Suche, inklusive aller gesperrten Ergebnisse mit Firmennamen, Jobtitel, URL und Beschreibung.`
+      content: `Die Stripe-Zahlung war erfolgreich! Alle Ergebnisse sind jetzt freigeschaltet.\n<!--PAYMENT_SUCCESS search_id=${searchId}-->\nBitte zeige mir jetzt alle Ergebnisse aus der urspr\u00fcnglichen Suche, inklusive aller gesperrten Ergebnisse mit Firmennamen, Jobtitel, URL und Beschreibung.`
     })
   }, [paymentSearchId, append])
 
@@ -429,23 +341,16 @@ export default function ChatPage() {
     if (results.length > 0) generateResultsPdf(results, resultJobTitle, hasPaid)
   }
 
-  const getVisibleContent = (content: string) => {
-    if (content.includes('<!--RESULTS_DATA')) return content.split('<!--RESULTS_DATA')[0].trim()
-    if (content.includes('<!--PAYMENT_SUCCESS')) return content.split('<!--PAYMENT_SUCCESS')[0].trim()
-    return content
-  }
-
-  const openChat = () => setChatOpen(true)
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#08080e] text-white">
+
       {/* ─── Navbar ─── */}
-      <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-2xl font-semibold italic text-black cursor-pointer" onClick={() => setChatOpen(false)}>pexible</span>
-          <div className="flex items-center gap-4">
+      <nav className="sticky top-0 z-40 bg-[#08080e]/80 backdrop-blur-xl border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <span className="text-2xl font-bold italic text-white tracking-tight">pexible</span>
+          <div className="flex items-center gap-3">
             {freemiumResults.length > 0 && (
-              <button onClick={handleDownloadPdf} className="text-gray-600 hover:text-black transition-colors" title="Ergebnisse herunterladen">
+              <button onClick={handleDownloadPdf} className="p-2 text-gray-500 hover:text-[#F5B731] transition-colors" title={hasPaid ? 'Alle Ergebnisse herunterladen' : 'Vorschau herunterladen'}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               </button>
             )}
@@ -454,116 +359,243 @@ export default function ChatPage() {
                 <div className="w-8 h-8 bg-[#F5B731] rounded-full flex items-center justify-center text-black text-sm font-bold">
                   {loggedInUser.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-sm font-medium text-gray-700 hidden sm:inline">{loggedInUser}</span>
+                <span className="text-sm font-medium text-gray-300 hidden sm:inline">{loggedInUser}</span>
               </div>
             ) : (
-              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              </div>
             )}
-            <button onClick={openChat} className="px-5 py-2 bg-[#F5B731] hover:bg-[#e5a820] text-black font-semibold rounded-full transition-colors text-sm">
-              Jobs finden
-            </button>
           </div>
         </div>
       </nav>
 
-      {/* ─── Landing Page Content ─── */}
-      <LandingPage onOpenChat={openChat} />
+      {/* ─── Hero Section with Chat ─── */}
+      <section className="relative px-4 pt-10 sm:pt-16 pb-16 sm:pb-24 overflow-hidden">
+        {/* Ambient glows */}
+        <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#F5B731]/[0.07] rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-[-100px] left-[-200px] w-[500px] h-[500px] bg-purple-600/[0.04] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-[100px] right-[-200px] w-[400px] h-[400px] bg-blue-600/[0.03] rounded-full blur-[120px] pointer-events-none" />
 
-      {/* ─── Floating Chat Button ─── */}
-      {!chatOpen && (
-        <button
-          onClick={openChat}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#F5B731] hover:bg-[#e5a820] text-black rounded-full shadow-lg shadow-amber-300/50 flex items-center justify-center transition-all hover:scale-105"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-        </button>
-      )}
-
-      {/* ─── Chat Slide-in Panel ─── */}
-      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out ${chatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex flex-col h-full">
-          {/* Chat Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b bg-white">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#F5B731] rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-              </div>
-              <div>
-                <p className="font-semibold text-black text-sm italic">pexible</p>
-                <p className="text-xs text-gray-500">Dein Job-Makler</p>
-              </div>
+        <div className="max-w-2xl mx-auto relative">
+          {/* Headline */}
+          <div className="text-center mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs text-gray-400 mb-6">
+              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+              KI-gest&uuml;tzte Jobsuche &ndash; jetzt live
             </div>
-            <div className="flex items-center gap-2">
-              {freemiumResults.length > 0 && (
-                <button onClick={handleDownloadPdf} className="p-2 text-gray-400 hover:text-gray-600 transition-colors" title={hasPaid ? 'Alle Ergebnisse herunterladen' : 'Vorschau herunterladen'}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                </button>
-              )}
-              <button onClick={() => setChatOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[1.1] tracking-tight">
+              Entdecke Jobs, die{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F5B731] to-[#f0d078]">andere nicht sehen</span>
+            </h1>
+            <p className="mt-4 sm:mt-5 text-base sm:text-lg text-gray-400 max-w-lg mx-auto leading-relaxed">
+              Starte jetzt deine Suche &ndash; direkt hier im Chat. Unser KI-Makler findet Stellen auf tausenden Karriere-Websites.
+            </p>
           </div>
 
-          {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-3">
-              {messages.map((message) => {
-                const visibleContent = getVisibleContent(message.content)
-                if (!visibleContent) return null
-                return (
-                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                      message.role === 'user'
-                        ? 'bg-[#F5B731] text-black'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}>
-                      <div className="whitespace-pre-wrap break-words">{visibleContent}</div>
-                    </div>
+          {/* ─── Chat Card (Hero Element) ─── */}
+          <div className="relative">
+            {/* Glow border */}
+            <div className="absolute -inset-px bg-gradient-to-b from-[#F5B731]/25 via-[#F5B731]/5 to-transparent rounded-[1.25rem] pointer-events-none" />
+
+            <div className="relative bg-[#111118]/95 backdrop-blur-xl rounded-[1.25rem] overflow-hidden border border-white/[0.06] shadow-2xl shadow-black/50">
+              {/* Chat Header */}
+              <div className="px-4 sm:px-5 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gradient-to-br from-[#F5B731] to-[#e5a820] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#F5B731]/20">
+                    <svg className="w-4.5 h-4.5 text-black" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                   </div>
-                )
-              })}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-gray-100 rounded-2xl px-4 py-3">
-                    <div className="flex space-x-1.5">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div>
+                    <p className="font-semibold text-white text-sm tracking-tight">pexible Job-Makler</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                      <span className="text-xs text-gray-500">Online</span>
                     </div>
                   </div>
                 </div>
-              )}
-              <div ref={messagesEndRef} />
+                {freemiumResults.length > 0 && (
+                  <button onClick={handleDownloadPdf} className="p-2 text-gray-500 hover:text-[#F5B731] transition-colors rounded-lg hover:bg-white/5" title={hasPaid ? 'Alle Ergebnisse herunterladen' : 'Vorschau herunterladen'}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Chat Messages */}
+              <div className="h-[350px] sm:h-[420px] overflow-y-auto px-4 py-4 scroll-smooth">
+                <div className="space-y-3">
+                  {messages.map((message) => {
+                    const visibleContent = getVisibleContent(message.content)
+                    if (!visibleContent) return null
+                    return (
+                      <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                          message.role === 'user'
+                            ? 'bg-[#F5B731] text-black'
+                            : 'bg-white/[0.05] text-gray-200 border border-white/[0.06]'
+                        }`}>
+                          <div className="whitespace-pre-wrap break-words">{visibleContent}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-white/[0.05] border border-white/[0.06] rounded-2xl px-4 py-3">
+                        <div className="flex space-x-1.5">
+                          <div className="w-1.5 h-1.5 bg-[#F5B731] rounded-full animate-bounce" />
+                          <div className="w-1.5 h-1.5 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                          <div className="w-1.5 h-1.5 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              </div>
+
+              {/* Chat Input */}
+              <div className="border-t border-white/[0.06] px-3 sm:px-4 py-3 bg-[#0c0c14]/60">
+                <form onSubmit={handleSubmit}>
+                  <div className="flex gap-2">
+                    <input
+                      ref={inputRef}
+                      value={input}
+                      onChange={handleInputChange}
+                      placeholder="z.B. Marketing Manager in Berlin..."
+                      className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                      disabled={isLoading}
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      disabled={isLoading || !input.trim()}
+                      className="px-4 py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-white/[0.04] disabled:text-gray-600 text-black font-semibold rounded-xl transition-all flex-shrink-0"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
 
-          {/* Chat Input */}
-          <div className="border-t bg-white px-4 py-3">
-            <form onSubmit={handleSubmit}>
-              <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={handleInputChange}
-                  placeholder="Schreibe eine Nachricht..."
-                  className="flex-1 px-4 py-2.5 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                  disabled={isLoading}
-                  autoFocus
-                />
-                <button type="submit" disabled={isLoading || !input.trim()} className="px-4 py-2.5 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-gray-200 text-black font-medium rounded-full transition-colors text-sm">
-                  Senden
-                </button>
-              </div>
-            </form>
+          {/* Trust badges below chat */}
+          <div className="flex items-center justify-center gap-4 sm:gap-6 mt-6 text-xs text-gray-500">
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              <span>SSL-verschl&uuml;sselt</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              <span>KI-gest&uuml;tzt</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+              <span>Stripe-Zahlung</span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Overlay when chat is open on mobile */}
-      {chatOpen && (
-        <div className="fixed inset-0 bg-black/30 z-40 sm:block hidden" onClick={() => setChatOpen(false)} />
-      )}
+      {/* ─── Features ─── */}
+      <section className="px-4 py-16 sm:py-24 max-w-5xl mx-auto">
+        <div className="text-center mb-10 sm:mb-14">
+          <h2 className="text-2xl sm:text-4xl font-extrabold leading-tight tracking-tight">
+            So findest du Stellen,{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F5B731] to-[#f0d078]">die andere &uuml;bersehen</span>
+          </h2>
+          <p className="mt-3 text-gray-500 max-w-lg mx-auto text-sm sm:text-base">Unsere KI-Agenten durchsuchen tausende Karriereseiten &ndash; schneller und gr&uuml;ndlicher als jedes Jobportal.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+          {[
+            {
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>,
+              title: 'Direkt bei Unternehmen suchen',
+              text: 'Unsere Suche beginnt direkt auf tausenden Karriere-Websites \u2014 ohne Umwege \u00fcber Portale.',
+            },
+            {
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" /></svg>,
+              title: 'KI-Agenten arbeiten f\u00fcr dich',
+              text: 'Unsere spezialisierten Agenten lesen Seiten wie ein Mensch und finden auch verborgene Hinweise.',
+            },
+            {
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>,
+              title: 'Individuelle Empfehlungen',
+              text: 'Du erh\u00e4ltst nur Jobs, die wirklich zu deinem Profil passen \u2014 keine irrelevanten Anzeigen.',
+            },
+            {
+              icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>,
+              title: 'Schneller zum Erfolg',
+              text: 'Offene Stellen, bevor sie woanders erscheinen \u2014 erh\u00f6he deine Chancen auf Zusagen.',
+            },
+          ].map((f, i) => (
+            <div key={i} className="group bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-6 hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300">
+              <div className="w-10 h-10 bg-[#F5B731]/10 rounded-xl flex items-center justify-center mb-4 text-[#F5B731] group-hover:bg-[#F5B731]/20 transition-colors duration-300">
+                {f.icon}
+              </div>
+              <h3 className="font-bold text-white mb-1.5 tracking-tight">{f.title}</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">{f.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── Testimonials ─── */}
+      <section className="px-4 py-16 sm:py-24 max-w-4xl mx-auto">
+        <div className="text-center mb-10 sm:mb-14">
+          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+            Echte Erfolgsgeschichten
+          </h2>
+          <p className="mt-3 text-gray-500 text-sm sm:text-base">Was unsere Nutzer sagen.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {[
+            { name: 'Julia M.', role: 'Marketing Managerin, Leipzig', quote: '\u201eIch hatte monatelang nichts gefunden, dann hat Pexible mir 9 Firmen geschickt, von denen ich noch nie geh\u00f6rt hatte. Zwei Wochen sp\u00e4ter sa\u00df ich im Bewerbungsgespr\u00e4ch.\u201c' },
+            { name: 'Samir R.', role: 'IT-Spezialist, Berlin', quote: '\u201eIch war skeptisch, aber der Agent hat tats\u00e4chlich 12 neue Unternehmen gefunden, die genau zu meinem Profil passen. 5 Bewerbungen \u2013 3 R\u00fcckmeldungen in nur einer Woche!\u201c' },
+          ].map((t, i) => (
+            <div key={i} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#F5B731]/30 to-[#F5B731]/10 rounded-full flex items-center justify-center text-sm font-bold text-[#F5B731]">
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-white text-sm">{t.name}</p>
+                  <p className="text-xs text-gray-500">{t.role}</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-300 leading-relaxed">{t.quote}</p>
+              <div className="flex gap-0.5 mt-4">
+                {[...Array(5)].map((_, j) => (
+                  <svg key={j} className="w-4 h-4 text-[#F5B731]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── CTA Section ─── */}
+      <section className="px-4 py-16 sm:py-24">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-4">
+            Bereit, deinen Traumjob zu finden?
+          </h2>
+          <p className="text-gray-400 mb-8 text-sm sm:text-base">Scrolle nach oben und starte deine pers&ouml;nliche Jobsuche im Chat.</p>
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#F5B731] hover:bg-[#e5a820] text-black font-semibold rounded-xl transition-all text-sm shadow-lg shadow-[#F5B731]/20 hover:shadow-[#F5B731]/30"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
+            Zum Chat
+          </button>
+        </div>
+      </section>
+
+      {/* ─── Footer ─── */}
+      <footer className="border-t border-white/5 px-6 py-8 text-center">
+        <p className="italic text-lg font-bold text-white tracking-tight mb-1">pexible</p>
+        <p className="text-sm text-gray-500">Dein Job-Makler &bull; KI-gest&uuml;tzte Jobsuche direkt auf Karriereseiten</p>
+      </footer>
 
       {/* ─── Modals ─── */}
       <RegistrationModal isOpen={showModal} data={registrationData} onClose={() => { setShowModal(false); setRegistrationData(null) }} onSuccess={handleRegistrationSuccess} />
