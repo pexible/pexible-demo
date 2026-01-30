@@ -322,6 +322,17 @@ export default function ChatPage() {
   const [resultJobTitle, setResultJobTitle] = useState('')
   const [hasPaid, setHasPaid] = useState(false)
 
+  // ─── Audio Mode ───
+  const [audioMode, setAudioMode] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const audioModeRef = useRef(false)
+  const recognitionRef = useRef<ReturnType<typeof Object> | null>(null)
+  const lastSpokenIdRef = useRef('')
+  const startListeningRef = useRef<() => void>(() => {})
+
+  useEffect(() => { audioModeRef.current = audioMode }, [audioMode])
+
   useEffect(() => {
     const el = chatContainerRef.current
     if (el) el.scrollTop = el.scrollHeight
@@ -358,6 +369,105 @@ export default function ChatPage() {
       }
     }
   }, [messages, paymentHandled])
+
+  // ─── Audio Functions ───
+
+  const doStartListening = useCallback(() => {
+    if (typeof window === 'undefined') return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) return
+    try {
+      const r = new SR()
+      r.lang = 'de-DE'
+      r.continuous = false
+      r.interimResults = false
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      r.onresult = (e: any) => {
+        const t = e.results[0][0].transcript
+        if (t.trim()) append({ role: 'user', content: t.trim() })
+      }
+      r.onend = () => setIsListening(false)
+      r.onerror = () => setIsListening(false)
+      recognitionRef.current = r
+      r.start()
+      setIsListening(true)
+    } catch { /* browser does not support speech recognition */ }
+  }, [append])
+
+  useEffect(() => { startListeningRef.current = doStartListening }, [doStartListening])
+
+  const doStopListening = useCallback(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (recognitionRef.current as any)?.stop?.()
+    recognitionRef.current = null
+    setIsListening(false)
+  }, [])
+
+  const doSpeak = useCallback((text: string, autoListen = true) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    window.speechSynthesis.cancel()
+    const u = new SpeechSynthesisUtterance(text)
+    u.lang = 'de-DE'
+    u.rate = 1.05
+    u.onstart = () => setIsSpeaking(true)
+    u.onend = () => {
+      setIsSpeaking(false)
+      if (autoListen && audioModeRef.current) startListeningRef.current()
+    }
+    window.speechSynthesis.speak(u)
+  }, [])
+
+  // Auto-speak new bot messages in audio mode; auto-exit on email request
+  useEffect(() => {
+    if (!audioMode || isLoading) return
+    const lastMsg = messages[messages.length - 1]
+    if (!lastMsg || lastMsg.role !== 'assistant') return
+    if (lastMsg.id === lastSpokenIdRef.current) return
+    const visibleContent = getVisibleContent(lastMsg.content)
+    if (!visibleContent) return
+    lastSpokenIdRef.current = lastMsg.id
+
+    const lower = visibleContent.toLowerCase()
+    if (lower.includes('email') || lower.includes('e-mail') || lower.includes('mailadresse')) {
+      setAudioMode(false)
+      doSpeak(visibleContent, false)
+      return
+    }
+    doSpeak(visibleContent)
+  }, [messages, isLoading, audioMode, doSpeak])
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (recognitionRef.current as any)?.stop?.()
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
+    }
+  }, [])
+
+  const handleToggleAudio = useCallback(() => {
+    if (audioMode) {
+      setAudioMode(false)
+      doStopListening()
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+      setIsSpeaking(false)
+    } else {
+      setAudioMode(true)
+      const lastBotMsg = [...messages].reverse().find(m => m.role === 'assistant')
+      if (lastBotMsg) {
+        const text = getVisibleContent(lastBotMsg.content)
+        if (text) {
+          lastSpokenIdRef.current = lastBotMsg.id
+          doSpeak(text)
+        }
+      } else {
+        doStartListening()
+      }
+    }
+  }, [audioMode, doStopListening, doStartListening, doSpeak, messages])
 
   const handleRegistrationSuccess = async (result: { search_id: string; first_name: string; total_results: number; results: Array<{ company_name: string; job_title: string; job_url: string; description: string }> }) => {
     setShowModal(false)
@@ -489,6 +599,22 @@ export default function ChatPage() {
                       </div>
                     )
                   })}
+                  {/* Audio mode invitation - shown after welcome message */}
+                  {messages.length === 1 && !audioMode && (
+                    <div className="flex justify-center mt-2">
+                      <button
+                        onClick={handleToggleAudio}
+                        className="inline-flex items-center gap-2.5 px-5 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-[#F5B731]/20 rounded-xl transition-all text-sm text-gray-400 hover:text-white group"
+                      >
+                        <div className="w-8 h-8 bg-[#F5B731]/10 group-hover:bg-[#F5B731]/20 rounded-full flex items-center justify-center transition-colors">
+                          <svg className="w-4 h-4 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                          </svg>
+                        </div>
+                        Oder sprich direkt mit deinem Makler
+                      </button>
+                    </div>
+                  )}
                   {isLoading && (
                     <div className="flex justify-start">
                       <div className="bg-white/[0.05] border border-white/[0.06] rounded-2xl px-4 py-3">
@@ -503,28 +629,95 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              {/* Chat Input */}
+              {/* Chat Input / Audio Controls */}
               <div className="border-t border-white/[0.06] px-3 sm:px-4 py-3 bg-[#0c0c14]/60">
-                <form onSubmit={handleSubmit}>
-                  <div className="flex gap-2">
-                    <input
-                      ref={inputRef}
-                      value={input}
-                      onChange={handleInputChange}
-                      placeholder="z.B. Marketing Manager in Berlin..."
-                      className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
-                      disabled={isLoading}
-                      autoFocus
-                    />
+                {audioMode ? (
+                  <div className="flex flex-col items-center py-1">
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => {
+                          if (isListening) doStopListening()
+                          else if (!isSpeaking && !isLoading) doStartListening()
+                        }}
+                        disabled={isSpeaking || isLoading}
+                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                          isListening
+                            ? 'bg-red-500 shadow-lg shadow-red-500/30'
+                            : isSpeaking
+                            ? 'bg-[#F5B731]/20 text-[#F5B731]'
+                            : 'bg-[#F5B731] text-black hover:bg-[#e5a820] shadow-lg shadow-[#F5B731]/20'
+                        }`}
+                      >
+                        {isSpeaking ? (
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="none" stroke={isListening ? 'white' : 'currentColor'} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                        )}
+                      </button>
+                    </div>
+                    {/* Animated listening indicator */}
+                    {isListening && (
+                      <div className="flex items-center gap-[3px] mt-3 h-4">
+                        {[0, 1, 2, 3, 4].map(i => (
+                          <div
+                            key={i}
+                            className="w-[3px] bg-red-400 rounded-full animate-pulse"
+                            style={{ height: `${8 + Math.random() * 10}px`, animationDelay: `${i * 0.1}s`, animationDuration: '0.6s' }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {isSpeaking && (
+                      <div className="flex items-center gap-[3px] mt-3 h-4">
+                        {[0, 1, 2, 3, 4].map(i => (
+                          <div
+                            key={i}
+                            className="w-[3px] bg-[#F5B731] rounded-full animate-pulse"
+                            style={{ height: `${6 + Math.random() * 12}px`, animationDelay: `${i * 0.12}s`, animationDuration: '0.5s' }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500 mt-2">
+                      {isListening ? 'Ich h\u00f6re zu\u2026' : isSpeaking ? 'Makler spricht\u2026' : isLoading ? 'Antwort wird generiert\u2026' : 'Tippe auf das Mikrofon'}
+                    </p>
                     <button
-                      type="submit"
-                      disabled={isLoading || !input.trim()}
-                      className="px-4 py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-white/[0.04] disabled:text-gray-600 text-black font-semibold rounded-xl transition-all flex-shrink-0"
+                      onClick={handleToggleAudio}
+                      className="mt-2 text-xs text-gray-500 hover:text-gray-300 transition-colors underline underline-offset-2"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                      Zum Textchat wechseln
                     </button>
                   </div>
-                </form>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    <div className="flex gap-2">
+                      <input
+                        ref={inputRef}
+                        value={input}
+                        onChange={handleInputChange}
+                        placeholder="z.B. Marketing Manager in Berlin..."
+                        className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        disabled={isLoading}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleToggleAudio}
+                        className="px-3 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] rounded-xl transition-all flex-shrink-0 text-gray-400 hover:text-[#F5B731]"
+                        title="Sprachmodus"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isLoading || !input.trim()}
+                        className="px-4 py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-white/[0.04] disabled:text-gray-600 text-black font-semibold rounded-xl transition-all flex-shrink-0"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
           </div>
