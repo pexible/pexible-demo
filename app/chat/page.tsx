@@ -330,6 +330,7 @@ export default function ChatPage() {
   const recognitionRef = useRef<ReturnType<typeof Object> | null>(null)
   const lastSpokenIdRef = useRef('')
   const startListeningRef = useRef<() => void>(() => {})
+  const audioElRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => { audioModeRef.current = audioMode }, [audioMode])
 
@@ -405,17 +406,60 @@ export default function ChatPage() {
   }, [])
 
   const doSpeak = useCallback((text: string, autoListen = true) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-    window.speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'de-DE'
-    u.rate = 1.05
-    u.onstart = () => setIsSpeaking(true)
-    u.onend = () => {
-      setIsSpeaking(false)
-      if (autoListen && audioModeRef.current) startListeningRef.current()
+    if (typeof window === 'undefined') return
+
+    // Stop any current playback
+    if (audioElRef.current) {
+      audioElRef.current.pause()
+      audioElRef.current = null
     }
-    window.speechSynthesis.speak(u)
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+
+    setIsSpeaking(true)
+
+    // Use OpenAI TTS API for natural voice, fall back to browser TTS
+    fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('TTS API error')
+        return res.blob()
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob)
+        const audio = new Audio(url)
+        audioElRef.current = audio
+        audio.onended = () => {
+          setIsSpeaking(false)
+          audioElRef.current = null
+          URL.revokeObjectURL(url)
+          if (autoListen && audioModeRef.current) startListeningRef.current()
+        }
+        audio.onerror = () => {
+          setIsSpeaking(false)
+          audioElRef.current = null
+          URL.revokeObjectURL(url)
+        }
+        audio.play().catch(() => {
+          setIsSpeaking(false)
+          audioElRef.current = null
+          URL.revokeObjectURL(url)
+        })
+      })
+      .catch(() => {
+        // Fallback: browser speech synthesis
+        if (!('speechSynthesis' in window)) { setIsSpeaking(false); return }
+        const u = new SpeechSynthesisUtterance(text)
+        u.lang = 'de-DE'
+        u.rate = 1.05
+        u.onend = () => {
+          setIsSpeaking(false)
+          if (autoListen && audioModeRef.current) startListeningRef.current()
+        }
+        window.speechSynthesis.speak(u)
+      })
   }, [])
 
   // Auto-speak new bot messages in audio mode; auto-exit on email request
@@ -442,6 +486,7 @@ export default function ChatPage() {
     return () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (recognitionRef.current as any)?.stop?.()
+      if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current = null }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
     }
   }, [])
@@ -450,6 +495,7 @@ export default function ChatPage() {
     if (audioMode) {
       setAudioMode(false)
       doStopListening()
+      if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current = null }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel()
       }
