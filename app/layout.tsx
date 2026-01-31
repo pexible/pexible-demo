@@ -2,11 +2,14 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from '@/components/SessionProvider'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
 
 export const metadata = {
-  title: 'pexible - Dein Job-Makler',
-  description: 'AI-powered Job Discovery Platform'
+  title: 'pexible - Dein persönlicher KI Job-Makler',
+  description: 'Finde Jobs, die andere nicht sehen. Unser KI-Makler durchsucht tausende Karriereseiten direkt und findet versteckte Stellen für dich.',
 }
 
 export default function RootLayout({

@@ -3,17 +3,89 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --color-cream: #FDF8F0;
+  --color-cream-dark: #F5EFE3;
+  --color-brand: #F5B731;
+  --color-brand-dark: #E5A820;
+  --color-navy: #1A1A2E;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--color-navy);
+  background-color: var(--color-cream);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1C9BD;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B8AFA3;
+}
+
+/* Strikethrough animation */
+@keyframes strike {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+
+.strike-through {
+  position: relative;
+  display: inline-block;
+}
+
+.strike-through::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -2px;
+  right: -2px;
+  width: calc(100% + 4px);
+  height: 3px;
+  background: #3B82F6;
+  transform: rotate(-1.5deg);
+}
+
+/* Section fade-in on scroll */
+.section-appear {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: sectionFade 0.7s ease-out forwards;
+}
+
+@keyframes sectionFade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Chat page specific dark theme override */
+.chat-dark-theme {
+  background-color: #08080e;
+  color: #ffffff;
+}
+
+.chat-dark-theme ::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+.chat-dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
