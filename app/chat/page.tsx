@@ -331,6 +331,7 @@ export default function ChatPage() {
   const lastSpokenIdRef = useRef('')
   const startListeningRef = useRef<() => void>(() => {})
   const audioElRef = useRef<HTMLAudioElement | null>(null)
+  const [pendingAudioMsgId, setPendingAudioMsgId] = useState<string | null>(null)
 
   useEffect(() => { audioModeRef.current = audioMode }, [audioMode])
 
@@ -405,7 +406,7 @@ export default function ChatPage() {
     setIsListening(false)
   }, [])
 
-  const doSpeak = useCallback((text: string, autoListen = true) => {
+  const doSpeak = useCallback((text: string, autoListen = true, onAudioReady?: () => void) => {
     if (typeof window === 'undefined') return
 
     // Stop any current playback
@@ -442,6 +443,8 @@ export default function ChatPage() {
           audioElRef.current = null
           URL.revokeObjectURL(url)
         }
+        // Reveal text right before playback starts
+        onAudioReady?.()
         audio.play().catch(() => {
           setIsSpeaking(false)
           audioElRef.current = null
@@ -449,6 +452,8 @@ export default function ChatPage() {
         })
       })
       .catch(() => {
+        // Reveal text even on TTS failure
+        onAudioReady?.()
         // Fallback: browser speech synthesis
         if (!('speechSynthesis' in window)) { setIsSpeaking(false); return }
         const u = new SpeechSynthesisUtterance(text)
@@ -472,13 +477,17 @@ export default function ChatPage() {
     if (!visibleContent) return
     lastSpokenIdRef.current = lastMsg.id
 
+    // Hide text until audio is ready to play
+    setPendingAudioMsgId(lastMsg.id)
+    const revealText = () => setPendingAudioMsgId(null)
+
     const lower = visibleContent.toLowerCase()
     if (lower.includes('email') || lower.includes('e-mail') || lower.includes('mailadresse')) {
       setAudioMode(false)
-      doSpeak(visibleContent, false)
+      doSpeak(visibleContent, false, revealText)
       return
     }
-    doSpeak(visibleContent)
+    doSpeak(visibleContent, true, revealText)
   }, [messages, isLoading, audioMode, doSpeak])
 
   // Cleanup speech on unmount
@@ -494,6 +503,7 @@ export default function ChatPage() {
   const handleToggleAudio = useCallback(() => {
     if (audioMode) {
       setAudioMode(false)
+      setPendingAudioMsgId(null)
       doStopListening()
       if (audioElRef.current) { audioElRef.current.pause(); audioElRef.current = null }
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -630,9 +640,16 @@ export default function ChatPage() {
               {/* Chat Messages */}
               <div ref={chatContainerRef} className="h-[350px] sm:h-[420px] overflow-y-auto px-4 py-4">
                 <div className="space-y-3">
-                  {messages.map((message) => {
+                  {messages.map((message, idx) => {
                     const visibleContent = getVisibleContent(message.content)
                     if (!visibleContent) return null
+
+                    // In audio mode, hide assistant text while streaming or while audio loads
+                    const isLastMsg = idx === messages.length - 1
+                    const isStreamingThis = isLoading && isLastMsg && message.role === 'assistant'
+                    const isPendingAudio = message.id === pendingAudioMsgId
+                    const hideForAudio = audioMode && (isStreamingThis || isPendingAudio)
+
                     return (
                       <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
@@ -640,7 +657,15 @@ export default function ChatPage() {
                             ? 'bg-[#F5B731] text-black'
                             : 'bg-white/[0.05] text-gray-200 border border-white/[0.06]'
                         }`}>
-                          <div className="whitespace-pre-wrap break-words">{visibleContent}</div>
+                          {hideForAudio ? (
+                            <div className="flex space-x-1.5 py-0.5">
+                              <div className="w-1.5 h-1.5 bg-[#F5B731] rounded-full animate-bounce" />
+                              <div className="w-1.5 h-1.5 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                              <div className="w-1.5 h-1.5 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                            </div>
+                          ) : (
+                            <div className="whitespace-pre-wrap break-words">{visibleContent}</div>
+                          )}
                         </div>
                       </div>
                     )
@@ -661,7 +686,7 @@ export default function ChatPage() {
                       </button>
                     </div>
                   )}
-                  {isLoading && (
+                  {isLoading && !audioMode && (
                     <div className="flex justify-start">
                       <div className="bg-white/[0.05] border border-white/[0.06] rounded-2xl px-4 py-3">
                         <div className="flex space-x-1.5">
