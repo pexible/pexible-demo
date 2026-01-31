@@ -27,11 +27,10 @@ export async function POST(req: Request) {
       speed: 1.0,
     })
 
-    const buffer = Buffer.from(await response.arrayBuffer())
-    return new Response(buffer, {
+    // Stream through without buffering the entire response
+    return new Response(response.body as ReadableStream, {
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Content-Length': buffer.length.toString(),
         'Cache-Control': 'no-cache',
       },
     })
