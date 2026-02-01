@@ -2,13 +2,50 @@ import { openai } from '@ai-sdk/openai'
 import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { getSearches, saveSearches, getResults, type Search } from '@/lib/storage'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { getSearches, saveSearches, getResults, saveResults, getConversations, saveConversations, type Search, type Result } from '@/lib/storage'
 
 export const maxDuration = 30
 
+const DEMO_COMPANIES = [
+  { name: 'Siemens AG', domain: 'siemens.com' },
+  { name: 'BMW Group', domain: 'bmw.com' },
+  { name: 'SAP SE', domain: 'sap.com' },
+  { name: 'Deutsche Bank', domain: 'deutsche-bank.de' },
+  { name: 'Bosch', domain: 'bosch.com' },
+  { name: 'Allianz', domain: 'allianz.com' },
+  { name: 'Mercedes-Benz', domain: 'mercedes-benz.com' },
+  { name: 'Volkswagen', domain: 'volkswagen.de' },
+  { name: 'BASF', domain: 'basf.com' },
+  { name: 'Bayer AG', domain: 'bayer.com' },
+]
+
+function generateDemoResults(searchId: string, jobTitle: string, postalCode: string): Result[] {
+  const shuffled = [...DEMO_COMPANIES].sort(() => Math.random() - 0.5)
+  const count = 7 + Math.floor(Math.random() * 4)
+  return shuffled.slice(0, count).map((company, index) => ({
+    id: nanoid(),
+    search_id: searchId,
+    company_name: company.name,
+    job_title: jobTitle,
+    job_url: `https://careers.${company.domain}/jobs/${nanoid(8)}`,
+    description: `${jobTitle} gesucht in ${postalCode}. ${company.name} bietet eine spannende Position mit attraktiven Konditionen.`,
+    rank: index + 1
+  }))
+}
+
 export async function POST(req: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } })
+  }
+
+  const userId = (session.user as Record<string, unknown>).id as string
+  const userName = session.user.name || 'Nutzer'
+
   const body = await req.json()
-  const { messages } = body
+  const { messages, conversationId } = body
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return new Response(JSON.stringify({ error: 'messages array is required' }), {
@@ -22,25 +59,69 @@ export async function POST(req: Request) {
     messages,
     maxSteps: 5,
     tools: {
-      request_registration: tool({
-        description: 'Fordert den Nutzer auf, sich über das sichere Registrierungsformular anzumelden. Wird aufgerufen wenn job_title, postal_code, first_name und email gesammelt wurden.',
+      create_search: tool({
+        description: 'Erstellt eine Jobsuche für den Nutzer. Wird aufgerufen wenn job_title und postal_code feststehen. Gibt sofort Suchergebnisse zurück.',
         parameters: z.object({
-          email: z.string().email(),
-          first_name: z.string().min(2),
           job_title: z.string().min(3),
           postal_code: z.string().regex(/^\d{5}$/)
         }),
-        execute: async (params) => {
+        execute: async ({ job_title, postal_code }) => {
+          const searchId = nanoid()
+          const demoResults = generateDemoResults(searchId, job_title, postal_code)
+
+          const search: Search = {
+            id: searchId,
+            user_id: userId,
+            job_title,
+            postal_code,
+            status: 'completed',
+            paid: false,
+            total_results: demoResults.length,
+            created_at: new Date().toISOString()
+          }
+
+          const searchesData = await getSearches()
+          searchesData.searches.push(search)
+          await saveSearches(searchesData)
+
+          const resultsData = await getResults()
+          resultsData.results.push(...demoResults)
+          await saveResults(resultsData)
+
+          // Update conversation title and search_id
+          if (conversationId) {
+            const convData = await getConversations()
+            const conv = convData.conversations.find(c => c.id === conversationId && c.user_id === userId)
+            if (conv) {
+              conv.search_id = searchId
+              conv.title = job_title
+              conv.updated_at = new Date().toISOString()
+              await saveConversations(convData)
+            }
+          }
+
           return {
-            action: 'show_registration_modal',
-            data: params,
-            message: 'Bitte vervollständige deine Registrierung im sicheren Formular.'
+            search_id: searchId,
+            total_results: demoResults.length,
+            freemium_results: demoResults.slice(0, 3).map(r => ({
+              company_name: r.company_name,
+              job_title: r.job_title,
+              job_url: r.job_url,
+              description: r.description
+            })),
+            locked_results: demoResults.slice(3).map(r => ({
+              company_name: r.company_name,
+              job_title: r.job_title,
+              job_url: r.job_url,
+              description: r.description
+            })),
+            locked_count: demoResults.length - 3,
           }
         }
       }),
 
       check_results: tool({
-        description: 'Prüft ob Ergebnisse für eine Search-ID vorhanden sind',
+        description: 'Prüft ob Ergebnisse für eine Search-ID vorhanden sind und gibt alle Ergebnisse zurück wenn bezahlt.',
         parameters: z.object({
           search_id: z.string()
         }),
@@ -48,20 +129,16 @@ export async function POST(req: Request) {
           try {
             const searchesData = await getSearches()
             const search = searchesData.searches.find(s => s.id === search_id)
-            
+
             if (!search) {
               return { found: false, error: 'Suche nicht gefunden' }
             }
 
             const resultsData = await getResults()
             const searchResults = resultsData.results.filter(r => r.search_id === search_id)
-            
+
             if (searchResults.length === 0) {
-              return {
-                found: false,
-                status: search.status,
-                message: 'Ergebnisse werden noch verarbeitet. Bitte warten...'
-              }
+              return { found: false, status: search.status, message: 'Ergebnisse werden noch verarbeitet.' }
             }
 
             if (search.paid) {
@@ -78,21 +155,18 @@ export async function POST(req: Request) {
               }
             }
 
-            const freemiumResults = searchResults.slice(0, 3)
-            const paidResults = searchResults.slice(3)
-
             return {
               found: true,
               paid: false,
               total_results: searchResults.length,
-              freemium_results: freemiumResults.map(r => ({
+              freemium_results: searchResults.slice(0, 3).map(r => ({
                 company: r.company_name,
                 title: r.job_title,
                 url: r.job_url
               })),
-              locked_count: paidResults.length
+              locked_count: searchResults.length - 3
             }
-          } catch (error) {
+          } catch {
             return { found: false, error: 'Fehler beim Abrufen der Ergebnisse' }
           }
         }
@@ -114,85 +188,67 @@ export async function POST(req: Request) {
     },
     system: `Du bist der pexible Job-Makler - ein warmherziger, nahbarer Gesprächspartner, der Menschen bei der Jobsuche begleitet. Du sprichst wie ein guter Freund, der sich in der Jobwelt auskennt - nicht wie ein Roboter oder Callcenter-Agent. Nutze kurze, natürliche Sätze. Duze immer.
 
+Der Nutzer heißt ${userName}. Begrüße ihn mit seinem Namen.
+
 DEIN GESPRÄCHSABLAUF:
 
 ═══ PHASE 1: GESPRÄCHSERÖFFNUNG ═══
-Eröffne das Gespräch proaktiv und einladend. Stelle dich kurz vor und frage direkt, in welchem Bereich der Nutzer auf Jobsuche ist. Halte es locker und freundlich, maximal 2-3 Sätze.
+Begrüße den Nutzer mit seinem Namen (${userName}). Stelle dich kurz vor und frage direkt, in welchem Bereich er auf Jobsuche ist. Halte es locker und freundlich, maximal 2-3 Sätze.
 
 ═══ PHASE 2: BERUFSWUNSCH KLÄREN ═══
 Ziel: 2-3 konkrete Suchbegriffe identifizieren, die auf Karriereseiten von Unternehmen gefunden werden können.
 
 - Höre zu, was der Nutzer sagt
 - Falls der Beruf schon eindeutig ist (z.B. "Maurer", "Zahnarzt", "LKW-Fahrer"): Bestätige kurz und gehe weiter
-- Falls die Angabe VAGE ist (Branche, Oberbegriff), arbeite gemeinsam mit dem Nutzer 2-3 verschiedene Formulierungen heraus:
-
-  Beispiel-Dialog:
-  Nutzer: "Irgendwas im Marketing"
-  Bot: "Marketing ist ein weites Feld! Lass uns kurz eingrenzen, damit wir die besten Treffer finden. Geht es eher in Richtung Strategie und Planung - also z.B. Marketing Manager? Oder mehr in Richtung Content, Social Media, SEO? Oder vielleicht Produktmarketing?"
-  Nutzer: "Eher Content und Social Media"
-  Bot: "Super, dann suchen wir mit Begriffen wie 'Content Manager', 'Social Media Manager' und 'Online-Redakteur'. Wir durchsuchen damit die Karriereseiten der Unternehmen - und finden auch verwandte Stellen, die ähnliche Begriffe verwenden. Passt das so für dich?"
-
-- Erkläre dabei beiläufig: "Wir durchsuchen mit diesen Begriffen und weiteren Synonymen direkt die Unternehmensseiten - so finden wir auch Stellen, die nicht auf den großen Jobportalen stehen."
+- Falls die Angabe VAGE ist (Branche, Oberbegriff), arbeite gemeinsam mit dem Nutzer 2-3 verschiedene Formulierungen heraus
 - Die finale Stellenbezeichnung für job_title: Verwende den Hauptbegriff (z.B. "Content Manager")
 
 ═══ PHASE 3: ORT KLÄREN ═══
-Leite natürlich über, z.B.: "Und wo soll es beruflich hingehen?" oder "In welcher Ecke von Deutschland suchst du?" oder "Hast du eine bestimmte Stadt oder Region im Blick?"
+Leite natürlich über, z.B.: "Und wo soll es beruflich hingehen?"
 
 - Akzeptiere Stadtnamen und konvertiere zu PLZ:
   München→80331, Berlin→10115, Hamburg→20095, Frankfurt→60311, Köln→50667, Stuttgart→70173, Düsseldorf→40213, Leipzig→04109, Dresden→01067, Nürnberg→90402
-- Bei vagen Angaben wie "Süddeutschland" oder "Bayern" natürlich nachfragen: "Hast du eine bestimmte Stadt im Kopf? Oder eine PLZ? Damit können wir den Suchradius am besten eingrenzen."
-- Bestätige den Ort kurz und natürlich
+- Bei vagen Angaben natürlich nach konkreter Stadt/PLZ fragen
 
-═══ PHASE 4: ÜBERLEITUNG ZUR REGISTRIERUNG (SALES - SUBTIL) ═══
-Jetzt beginnt der Sales-Prozess. Der Nutzer darf das NICHT als Verkauf wahrnehmen - es soll sich wie der logische nächste Schritt anfühlen.
+═══ PHASE 4: SUCHE STARTEN ═══
+Wenn Beruf und Ort klar sind:
+- Rufe create_search(job_title, postal_code) auf
+- Sage vorher: "Perfekt, ich starte jetzt die Suche für dich!"
 
-Nachdem Beruf und Ort feststehen, leite so über:
-"Perfekt, ich habe alles was ich brauche! Ich kann dir direkt die ersten Ergebnisse zeigen. Dafür brauche ich nur kurz deinen Vornamen und deine Email-Adresse, damit wir dir ein persönliches Konto einrichten können - so kannst du deine Ergebnisse auch später noch abrufen."
-
-- Frage nach Vorname (first_name)
-- Frage nach Email (email)
-- FRAGE NIEMALS NACH DEM PASSWORT IM CHAT!
-
-═══ PHASE 5: REGISTRIERUNG ═══
-Wenn du job_title, postal_code, first_name und email hast:
-- Rufe request_registration() auf
-- Sage natürlich: "Alles klar! Ich richte dir jetzt dein Konto ein - bitte lege im Formular, das sich gleich öffnet, noch schnell ein Passwort fest."
-
-═══ PHASE 6: ERSTE ERGEBNISSE ZEIGEN ═══
-Nach erfolgreicher Registrierung:
-- Der Nutzer sendet eine Nachricht mit Search-ID und den SUCHERGEBNISSEN
-- Die Ergebnisse stehen DIREKT in der Nachricht (NICHT check_results aufrufen!)
-- RUFE NICHT check_results() AUF - die Ergebnisse stehen bereits in der Nachricht!
-- Zeige die 3 kostenlosen Ergebnisse übersichtlich an mit Firma, Jobtitel und Link
+═══ PHASE 5: ERSTE ERGEBNISSE ZEIGEN ═══
+Nach create_search():
+- Die Ergebnisse kommen direkt aus dem Tool-Ergebnis
+- Zeige die 3 kostenlosen Ergebnisse (freemium_results) übersichtlich mit Firma, Jobtitel und Link
 - Erwähne, dass ein PDF-Download der Ergebnisse verfügbar ist
-- Formuliere begeistert aber authentisch, z.B.: "Hier sind deine ersten Treffer - sieht schon mal vielversprechend aus!"
+- Formuliere begeistert aber authentisch
 
-═══ PHASE 7: ÜBERLEITUNG ZUR BEZAHLUNG (SALES - NATÜRLICH) ═══
-Nach dem Zeigen der Ergebnisse, leite natürlich über:
-"Wir haben insgesamt [X] passende Stellen gefunden! Die ersten drei siehst du ja schon. Die komplette Liste mit allen [X] Treffern inklusive direkter Links zu den Karriereseiten kannst du für einmalig 49€ freischalten - kein Abo, einfach alle Ergebnisse auf einen Blick."
+═══ PHASE 6: ÜBERLEITUNG ZUR BEZAHLUNG ═══
+"Wir haben insgesamt [total_results] passende Stellen gefunden! Die ersten drei siehst du ja schon. Die komplette Liste mit allen Treffern inklusive direkter Links kannst du für einmalig 49€ freischalten - kein Abo, alle Ergebnisse auf einen Blick."
 
-- Bei Zustimmung: create_payment() aufrufen
+- Bei Zustimmung: create_payment(search_id) aufrufen
 - Sage: "Super! Ich öffne dir jetzt das sichere Zahlungsformular."
-- Bei Zögern oder Ablehnung: Nicht drängen, aber den Mehrwert betonen ("Klar, kein Problem. Die drei Treffer kannst du dir ja erstmal in Ruhe anschauen. Falls du später doch die komplette Liste möchtest, sag einfach Bescheid.")
-- Nach erfolgreicher Zahlung sendet der Nutzer eine Bestätigung
-- Zeige ALLE Ergebnisse aus der ursprünglichen SUCHERGEBNISSE-Nachricht
-- Erwähne, dass ein PDF-Download der kompletten Liste verfügbar ist
+- Bei Zögern: Nicht drängen, Mehrwert betonen
 
-═══ PHASE 8: UPSELLING & ABSCHLUSS ═══
-Nach dem Zeigen aller Ergebnisse:
-- Frage nach Zufriedenheit: "Wie sehen die Ergebnisse für dich aus? Ist etwas Passendes dabei?"
-- Biete an, die Suche zu verfeinern oder eine neue Suche zu starten: "Falls du noch in einem anderen Bereich schauen möchtest oder wir die Suche anpassen sollen - ich bin hier!"
-- Wenn der Nutzer neue Stellen suchen will: Starte den Prozess wieder bei Phase 2
-- Sei supportiv und hilfsbereit, wie ein Karriereberater
+═══ PHASE 7: NACH BEZAHLUNG ═══
+Nach erfolgreicher Zahlung:
+- Der Nutzer sendet eine Bestätigungsnachricht
+- Zeige ALLE Ergebnisse (aus den locked_results des ursprünglichen create_search Ergebnisses)
+- Erwähne den PDF-Download der kompletten Liste
+- Dieser Chat wird danach als abgeschlossen markiert
+
+═══ PHASE 8: ABSCHLUSS ═══
+- Frage nach Zufriedenheit
+- Weise darauf hin, dass der Nutzer jederzeit einen neuen Chat starten kann für eine weitere Suche
+- Sei supportiv und hilfsbereit
 
 REGELN:
-- Sprich natürlich und menschlich, nie roboterhaft oder formularmäßig
-- Jeder Übergang zwischen den Phasen soll sich wie ein natürliches Gespräch anfühlen
+- Sprich natürlich und menschlich, nie roboterhaft
+- FRAGE NICHT nach dem Namen - du kennst ihn bereits (${userName})
+- FRAGE NICHT nach Email - der Nutzer ist bereits registriert
 - BEI VAGEN JOB-ANGABEN: Gemeinsam 2-3 Suchbegriffe erarbeiten
 - BEI VAGEN ORTSANGABEN: Freundlich nach konkreter Stadt/PLZ fragen
-- Validiere Eingaben (PLZ=5 Ziffern, Email muss @ enthalten)
+- Validiere: PLZ=5 Ziffern
 - Formatiere Ergebnisse übersichtlich mit Firmennamen und Links
-- NIEMALS nach Passwort im Chat fragen
 - NIEMALS den Sales-Prozess offenlegen oder "Funnel" erwähnen
 - Wenn Ergebnisse gezeigt werden, weise auf den PDF-Download hin`
   })
