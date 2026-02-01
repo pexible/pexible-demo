@@ -763,7 +763,7 @@ export default function ChatPage() {
                         value={input}
                         onChange={handleInputChange}
                         placeholder="z.B. Marketing Manager in Berlin..."
-                        className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
                         disabled={isLoading}
                         autoFocus
                       />

@@ -12,6 +12,13 @@ export const metadata = {
   description: 'Finde Jobs, die andere nicht sehen. Unser KI-Makler durchsucht tausende Karriereseiten direkt und findet versteckte Stellen für dich.',
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
+
 export default function RootLayout({
   children,
 }: {
