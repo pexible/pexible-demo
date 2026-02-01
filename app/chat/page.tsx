@@ -162,19 +162,19 @@ function RegistrationModal({ isOpen, data, onClose, onSuccess }: {
   if (!isOpen || !data) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div className="bg-[#1a1a24] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center z-[60] p-4 overflow-y-auto overscroll-contain">
+      <div className="bg-[#1a1a24] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 relative my-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        <div className="text-center mb-4 sm:mb-6">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+            <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </div>
-          <h2 className="text-xl font-bold text-white">Sichere Registrierung</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-white">Sichere Registrierung</h2>
           <p className="text-sm text-gray-400 mt-1">Erstelle dein Passwort, um deine Jobsuche zu starten</p>
         </div>
-        <div className="bg-white/5 border border-white/5 rounded-xl p-4 mb-6">
+        <div className="bg-white/5 border border-white/5 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
           <h3 className="text-sm font-medium text-gray-300 mb-2">Deine Suchdaten:</h3>
           <div className="space-y-1 text-sm text-gray-400">
             <p><span className="font-medium text-gray-300">Stelle:</span> {data.job_title}</p>
@@ -254,19 +254,19 @@ function PaymentModal({ isOpen, searchId, onClose, onSuccess }: { isOpen: boolea
   if (!isOpen || !searchId) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div className="bg-[#1a1a24] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center z-[60] p-4 overflow-y-auto overscroll-contain">
+      <div className="bg-[#1a1a24] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 relative my-auto">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+        <div className="text-center mb-4 sm:mb-6">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+            <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
           </div>
-          <h2 className="text-xl font-bold text-white">Alle Ergebnisse freischalten</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-white">Alle Ergebnisse freischalten</h2>
           <p className="text-sm text-gray-400 mt-1">Sichere Zahlung &uuml;ber Stripe</p>
         </div>
-        <div className="bg-white/5 border border-white/5 rounded-xl p-4 mb-6">
+        <div className="bg-white/5 border border-white/5 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-300 font-medium">Alle Suchergebnisse</span>
             <span className="text-lg font-bold text-white">49,00 &euro;</span>
