@@ -1,216 +1,247 @@
-# pexible Demo - Setup Guide
+# pexible Demo - AI Job-Makler
 
-## Vollständige AI Job-Makler Demo
+Eine vollstaendige Demo-Anwendung fuer pexible: ein KI-gesteuerter Job-Makler, der Nutzer im Gespraech durch die Jobsuche fuehrt -- von der Berufsklaerung bis zur Bezahlung.
 
-Diese Demo zeigt den kompletten User Flow von pexible:
-- ✅ Passwortgeschützte Website
-- ✅ Konversationaler Chat-Agent (OpenAI GPT-4)
-- ✅ Account-Erstellung im Chat
-- ✅ Freemium-Modell (3 von 12 Treffer)
-- ✅ Payment-Simulation
-- ✅ Backend-Upload für Ergebnisse
+## Features
+
+- **Konversationaler AI-Agent** (GPT-4o) mit 8-Phasen-Gespraechsablauf
+- **Passwortgeschuetzter Demo-Zugang** (NextAuth, ein geteiltes Passwort)
+- **Chat-Interface** mit Streaming, Audio-Modus (Spracheingabe + TTS) und PDF-Export
+- **Freemium-Modell**: 3 kostenlose Ergebnisse, alle Ergebnisse fuer 49 EUR (Stripe)
+- **Account-Erstellung** im Chat-Flow (Registrierungs-Modal)
+- **Admin-Upload** fuer echte Job-Ergebnisse (JSON-Datei)
+- **Landing Page** mit Produkt-Showcase, Testimonials, FAQ
+- **Blog-Seite** mit statischen Artikeln
+- **Responsive Design** mit warmem Cream/Gold-Farbschema
+
+## Tech-Stack
+
+- **Framework:** Next.js 15.1.11 (App Router) + React 19 + TypeScript 5
+- **AI:** Vercel AI SDK (@ai-sdk/openai) mit GPT-4o Streaming + Tool Calling
+- **Styling:** Tailwind CSS 3.4.1 (Custom Cream/Gold/Navy-Palette)
+- **Auth:** next-auth 4.24 (Credentials Provider, JWT)
+- **Payment:** Stripe (PaymentIntent API, React Elements)
+- **TTS:** OpenAI tts-1 (Stimme: nova)
+- **Storage:** Datei-basiertes JSON (kein Datenbank-Server noetig)
 
 ---
 
-## Setup (10 Minuten)
+## Setup
 
-### 1. Repository klonen
-```bash
-cd /home/claude/pexible-demo
-```
+### 1. Dependencies installieren
 
-### 2. Dependencies installieren
 ```bash
 npm install
 ```
 
-### 3. Environment Variables
+### 2. Umgebungsvariablen konfigurieren
+
 ```bash
 cp .env.local.example .env.local
 ```
 
 Bearbeite `.env.local`:
+
 ```env
-# OpenAI API Key (ERFORDERLICH)
-OPENAI_API_KEY=sk-proj-YOUR-KEY-HERE
-
-# NextAuth (ERFORDERLICH)
-NEXTAUTH_SECRET=$(openssl rand -base64 32)
+# PFLICHT
+OPENAI_API_KEY=sk-proj-dein-key-hier
+NEXTAUTH_SECRET=generiere-mit-openssl-rand-base64-32
 NEXTAUTH_URL=http://localhost:3000
-
-# Demo-Passwort
 DEMO_PASSWORD=pexible2025
 
-# Stripe (optional für Demo)
+# OPTIONAL (fuer Zahlungsfunktion)
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-**Wichtig:** Nur `OPENAI_API_KEY` ist wirklich erforderlich!
+> **Hinweis:** Ohne Stripe-Keys funktioniert die Zahlungsfunktion nicht, aber der Rest der Demo laeuft.
 
-### 4. Starten
+### 3. Entwicklungsserver starten
+
 ```bash
 npm run dev
 ```
 
-➜ Öffne: http://localhost:3000
+Oeffne: http://localhost:3000
 
 ---
 
 ## Demo-Ablauf
 
-### Schritt 1: Login
+### 1. Login
 - URL: http://localhost:3000
-- Passwort: `pexible2025`
+- Klicke "Jetzt starten" oder navigiere zu `/login`
+- Passwort: `pexible2025` (oder dein `DEMO_PASSWORD`)
 
-### Schritt 2: Chat starten
-- URL: http://localhost:3000/chat
-- Der AI-Agent beginnt automatisch das Gespräch
-- Beantworte die Fragen:
-  - Welche Stelle? → "Controller im Krankenhaus"
-  - PLZ? → "04416"
-  - Vorname? → "Max"
-  - Email? → "max@test.de"
-  - Passwort? → "test1234"
+### 2. Chat starten
+- Der AI-Agent beginnt automatisch das Gespraech
+- Beispiel-Eingaben:
+  - Beruf: "Controller im Krankenhaus"
+  - PLZ: "04416" (oder Stadtname wie "Leipzig")
+  - Vorname: "Max"
+  - Email: "max@test.de"
 
-### Schritt 3: Account wird erstellt
-- Agent bestätigt Account-Erstellung
-- Du erhältst eine `search_id` (z.B. "abc123xyz")
-- **Notiere diese ID!**
+### 3. Registrierung
+- Agent oeffnet Registrierungs-Modal
+- Passwort eingeben (mind. 8 Zeichen): z.B. "test1234"
+- Account wird erstellt, 7-10 Demo-Ergebnisse werden generiert
 
-### Schritt 4: Ergebnisse hochladen (Admin)
+### 4. Ergebnisse ansehen
+- Agent zeigt 3 kostenlose Treffer
+- PDF-Download ist verfuegbar
+
+### 5. Upgrade (optional)
+- Sage: "Ja, zeig mir alle Treffer"
+- Agent oeffnet Stripe-Zahlungsformular (49 EUR)
+- Nach Zahlung: alle Ergebnisse sichtbar
+
+### 6. Echte Ergebnisse hochladen (Admin)
 - URL: http://localhost:3000/upload
-- Search ID eingeben: `abc123xyz`
-- Datei wählen: `example-results.json`
-- Upload klicken
-
-### Schritt 5: Zurück zum Chat
-- Frage im Chat: "Gibt es schon Ergebnisse?"
-- Agent zeigt 3 Freemium-Treffer
-- 9 weitere sind "locked"
-
-### Schritt 6: Upgrade
-- Sage im Chat: "Ja, zeig mir alle Treffer"
-- Agent simuliert Zahlung (Demo-Modus)
-- Alle 12 Ergebnisse werden angezeigt
+- Search-ID eingeben (aus dem Chat oder `data/searches.json`)
+- JSON-Datei hochladen (Format siehe `example-results.json`)
 
 ---
 
-## Dateistruktur erklärt
+## Projektstruktur
 
-### JSON Storage (statt Datenbank)
 ```
-data/
-├── users.json       # Alle registrierten User
-├── searches.json    # Alle Job-Suchen
-└── results.json     # Alle Ergebnisse
-```
-
-### API Routes
-```
-/api/chat           # Chat mit OpenAI + Function Calling
-/api/upload         # Backend-Upload für Ergebnisse
-/api/auth/[...]     # NextAuth Password Protection
-```
-
-### Pages
-```
-/login             # Password Gate
-/chat              # Hauptchat-Interface
-/upload            # Admin Upload Interface
+pexible-demo/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx                # Root-Layout
+│   ├── globals.css               # Globale Styles
+│   ├── page.tsx                  # Landing Page
+│   ├── login/page.tsx            # Passwort-Gate
+│   ├── chat/page.tsx             # Chat-Interface (Haupt-Feature)
+│   ├── blog/page.tsx             # Blog
+│   ├── upload/page.tsx           # Admin-Upload
+│   └── api/
+│       ├── auth/[...nextauth]/   # Auth-Handler
+│       ├── chat/                 # AI Streaming + Tools
+│       ├── register/             # Registrierung
+│       ├── create-payment-intent/# Stripe PaymentIntent
+│       ├── payment-confirm/      # Zahlungsbestaetigung
+│       ├── tts/                  # Text-to-Speech
+│       └── upload/               # Ergebnis-Upload
+├── components/
+│   └── SessionProvider.tsx       # NextAuth Client-Wrapper
+├── lib/
+│   ├── auth.ts                   # Auth-Konfiguration
+│   └── storage.ts                # JSON-basierter Storage + Datenmodelle
+├── data/                         # JSON-Datenbank (lokal)
+│   ├── users.json
+│   ├── searches.json
+│   └── results.json
+├── example-results.json          # Beispiel fuer Upload-Format
+├── CLAUDE.md                     # Kontext fuer Claude Code Sessions
+└── .env.local.example            # Env-Template
 ```
 
 ---
 
-## Deployment zu Vercel
+## API-Endpunkte
 
-### 1. Vercel CLI installieren
-```bash
-npm i -g vercel
-```
-
-### 2. Deploy
-```bash
-vercel
-```
-
-### 3. Environment Variables setzen
-```bash
-vercel env add OPENAI_API_KEY
-vercel env add NEXTAUTH_SECRET
-vercel env add DEMO_PASSWORD
-```
-
-### 4. Production Deploy
-```bash
-vercel --prod
-```
-
-➜ Live URL: https://pexible-demo.vercel.app
+| Route | Methode | Auth | Beschreibung |
+|---|---|---|---|
+| `/api/chat` | POST | Ja | AI Chat Streaming mit Tool Calling |
+| `/api/register` | POST | Nein | Nutzer-Registrierung + Demo-Ergebnisse |
+| `/api/create-payment-intent` | POST | Nein | Stripe PaymentIntent (49 EUR) |
+| `/api/payment-confirm` | POST | Nein | Zahlungsbestaetigung |
+| `/api/tts` | POST | Nein | Text-to-Speech (MP3-Stream) |
+| `/api/upload` | POST | Ja | Admin JSON-Upload |
 
 ---
 
-## Eigene Results JSON erstellen
+## Datenmodelle
 
-Format:
+Die Anwendung nutzt datei-basiertes JSON-Storage (`lib/storage.ts`):
+
+**User** - Registrierte Nutzer
+```json
+{ "id": "...", "email": "...", "password_hash": "...", "first_name": "...", "created_at": "..." }
+```
+
+**Search** - Job-Suchen
+```json
+{ "id": "...", "user_id": "...", "job_title": "...", "postal_code": "...", "status": "completed", "paid": false, "total_results": 10, "created_at": "..." }
+```
+
+**Result** - Einzelne Ergebnisse (gehoeren zu einer Search)
+```json
+{ "id": "...", "search_id": "...", "company_name": "...", "job_title": "...", "job_url": "...", "description": "...", "rank": 1 }
+```
+
+---
+
+## Eigene Results-JSON erstellen
+
+Format (Array von Objekten):
 ```json
 [
   {
     "company_name": "Firma XY",
-    "job_title": "Position",
-    "job_url": "https://...",
-    "description": "Details"
+    "job_title": "Position (m/w/d)",
+    "job_url": "https://karriere.firma.de/stelle",
+    "description": "Details zur Stelle"
   }
 ]
 ```
 
-Nutze `example-results.json` als Vorlage.
+Siehe `example-results.json` als Vorlage.
+
+---
+
+## Deployment (Vercel)
+
+Siehe [DEPLOY.md](./DEPLOY.md) fuer detaillierte Anleitung.
+
+Kurzfassung:
+```bash
+npm i -g vercel
+vercel                    # Preview-Deployment
+vercel --prod             # Produktions-Deployment
+```
+
+Pflicht-Env-Variablen im Vercel-Dashboard setzen:
+`OPENAI_API_KEY`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `DEMO_PASSWORD`
+
+> **Wichtig:** Auf Vercel ist der Storage ephemeral (`/tmp`). Daten gehen bei Cold Starts verloren.
+> Fuer Produktion: Echte Datenbank (PostgreSQL/Supabase) einsetzen.
 
 ---
 
 ## Troubleshooting
 
-**"OpenAI API error"**
-→ Prüfe `OPENAI_API_KEY` in `.env.local`
-
-**"Session expired"**
-→ Logout: http://localhost:3000/api/auth/signout
-
-**"Results not found"**
-→ Prüfe ob `search_id` korrekt ist
-→ Prüfe ob Upload erfolgreich war
-
-**Chat antwortet nicht**
-→ Prüfe Browser Console (F12)
-→ Prüfe Terminal für Backend-Errors
+| Problem | Loesung |
+|---|---|
+| "OpenAI API error" | `OPENAI_API_KEY` in `.env.local` pruefen |
+| "Session expired" | Logout: http://localhost:3000/api/auth/signout |
+| "Results not found" | `search_id` korrekt? Upload erfolgreich? Check `data/searches.json` |
+| Chat antwortet nicht | Browser-Console (F12) + Terminal-Logs pruefen |
+| Stripe-Fehler | Stripe-Keys korrekt? Test-Modus nutzen (`sk_test_...`) |
+| Login funktioniert nicht | `DEMO_PASSWORD` und `NEXTAUTH_SECRET` gesetzt? |
 
 ---
 
-## Production Checklist
+## Produktions-Checkliste
 
-Bevor du live gehst:
+Vor dem Go-Live:
 
-- [ ] Echte Datenbank (PostgreSQL/Supabase)
-- [ ] Echtes Stripe Payment (nicht simuliert)
+- [ ] Echte Datenbank (PostgreSQL/Supabase) statt JSON-Dateien
+- [ ] Echtes Stripe Payment (Produktions-Keys + Webhook-Verifizierung)
 - [ ] Email-Versand (SendGrid/Resend)
 - [ ] Rate Limiting (Upstash/Redis)
 - [ ] Monitoring (Sentry)
 - [ ] Analytics (PostHog/Plausible)
-- [ ] DSGVO-Konformes Cookie Banner
-- [ ] Impressum + Datenschutz
+- [ ] DSGVO-konformes Cookie Banner
+- [ ] Impressum + Datenschutzerklaerung
+- [ ] Tests (Unit, Integration, E2E)
+- [ ] Linting + Formatting (ESLint, Prettier)
+- [ ] CI/CD-Pipeline (GitHub Actions)
 
 ---
 
-## Nächste Schritte
-
-1. **Demo testen** mit `npm run dev`
-2. **Eigene Results** hochladen
-3. **UI anpassen** (Logo, Farben in `app/chat/page.tsx`)
-4. **Echten Crawler** integrieren (replace simulate upload)
-5. **Payment** mit echtem Stripe
-
----
-
-## Support
+## Kontakt
 
 Fragen? Erstelle ein Issue oder kontaktiere timm.schindler@pexible.ai
