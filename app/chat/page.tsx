@@ -559,11 +559,11 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E] flex flex-col">
+    <div className="h-screen h-[100dvh] bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
 
       {/* ─── Navbar ─── */}
-      <nav className="sticky top-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
           <a href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</a>
           <div className="flex items-center gap-3">
             {freemiumResults.length > 0 && (
@@ -588,30 +588,30 @@ export default function ChatPage() {
       </nav>
 
       {/* ─── Chat Section ─── */}
-      <section className="flex-1 flex flex-col relative px-4 pt-6 sm:pt-10 pb-8 overflow-hidden">
-        {/* Subtle background shapes */}
-        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-[#F5B731]/[0.05] rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-50px] left-[-150px] w-[350px] h-[350px] bg-[#E8930C]/[0.03] rounded-full blur-[100px] pointer-events-none" />
+      <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-3 sm:pt-10 pb-2 sm:pb-8 min-h-0 overflow-hidden">
+        {/* Subtle background shapes - hidden on mobile to prevent overflow */}
+        <div className="hidden sm:block absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-[#F5B731]/[0.05] rounded-full blur-[120px] pointer-events-none" />
+        <div className="hidden sm:block absolute bottom-[-50px] left-[-150px] w-[350px] h-[350px] bg-[#E8930C]/[0.03] rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="max-w-2xl mx-auto w-full relative flex-1 flex flex-col">
+        <div className="max-w-2xl mx-auto w-full relative flex-1 flex flex-col min-h-0">
           {/* Mini headline */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-[#E8E0D4] rounded-full text-xs text-[#6B7280] mb-4 shadow-sm">
+          <div className="text-center mb-2 sm:mb-6">
+            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-[#E8E0D4] rounded-full text-xs text-[#6B7280] mb-4 shadow-sm">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
               KI-gest&uuml;tzte Jobsuche &ndash; jetzt live
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight text-[#1A1A2E]">
+            <h1 className="text-xl sm:text-3xl font-extrabold leading-tight tracking-tight text-[#1A1A2E]">
               Dein persönlicher <span className="text-[#F5B731]">Job-Makler</span>
             </h1>
-            <p className="mt-2 text-sm text-[#6B7280]">
+            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-[#6B7280]">
               Beschreibe deinen Traumjob &ndash; wir finden passende Stellen.
             </p>
           </div>
 
           {/* ─── Chat Card ─── */}
-          <div className="relative flex-1 flex flex-col">
+          <div className="relative flex-1 flex flex-col min-h-0">
             {/* Glow effect */}
-            <div className="absolute -inset-3 bg-gradient-to-b from-[#F5B731]/10 via-[#F5B731]/5 to-transparent rounded-[1.5rem] blur-xl pointer-events-none" />
+            <div className="absolute -inset-3 bg-gradient-to-b from-[#F5B731]/10 via-[#F5B731]/5 to-transparent rounded-[1.5rem] blur-xl pointer-events-none hidden sm:block" />
 
             <div className="relative bg-white rounded-2xl shadow-xl shadow-black/5 border border-[#E8E0D4]/80 overflow-hidden flex-1 flex flex-col">
               {/* Chat Header */}
@@ -636,7 +636,7 @@ export default function ChatPage() {
               </div>
 
               {/* Chat Messages */}
-              <div ref={chatContainerRef} className="h-[380px] sm:h-[460px] overflow-y-auto px-4 py-4 bg-[#FEFCF9]">
+              <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
                 <div className="space-y-3">
                   {messages.map((message, idx) => {
                     const visibleContent = getVisibleContent(message.content)
@@ -790,7 +790,7 @@ export default function ChatPage() {
           </div>
 
           {/* Trust badges below chat */}
-          <div className="flex items-center justify-center gap-4 sm:gap-6 mt-5 text-xs text-[#9CA3AF]">
+          <div className="hidden sm:flex items-center justify-center gap-4 sm:gap-6 mt-5 text-xs text-[#9CA3AF]">
             <div className="flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
               <span>SSL-verschl&uuml;sselt</span>
