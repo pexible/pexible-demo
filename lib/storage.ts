@@ -97,3 +97,36 @@ export async function getResults(): Promise<{ results: Result[] }> {
 export async function saveResults(data: { results: Result[] }): Promise<void> {
   return writeJSON('results.json', data)
 }
+
+// Conversation persistence for chat history
+export type ConversationMessage = {
+  id: string
+  role: string
+  content: string
+  toolInvocations?: Array<{
+    toolCallId: string
+    toolName: string
+    args: Record<string, unknown>
+    state: string
+    result?: unknown
+  }>
+}
+
+export type Conversation = {
+  id: string
+  user_id: string
+  title: string
+  status: 'active' | 'completed'
+  search_id?: string
+  messages: ConversationMessage[]
+  created_at: string
+  updated_at: string
+}
+
+export async function getConversations(): Promise<{ conversations: Conversation[] }> {
+  return readJSON('conversations.json', { conversations: [] })
+}
+
+export async function saveConversations(data: { conversations: Conversation[] }): Promise<void> {
+  return writeJSON('conversations.json', data)
+}
