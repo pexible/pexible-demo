@@ -71,28 +71,51 @@ function ChatListView() {
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [canCreateNew, setCanCreateNew] = useState(true)
+  const [cooldownUntil, setCooldownUntil] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/conversations')
       .then(res => res.json())
       .then(data => {
         setConversations(data.conversations || [])
+        setCanCreateNew(data.canCreateNew !== false)
+        setCooldownUntil(data.cooldownUntil || null)
         setIsLoading(false)
       })
       .catch(() => setIsLoading(false))
   }, [])
 
   const handleNewChat = async () => {
+    if (!canCreateNew) return
     setIsCreating(true)
     try {
       const res = await fetch('/api/conversations', { method: 'POST' })
       const data = await res.json()
+      if (data.error === 'cooldown_active') {
+        setCanCreateNew(false)
+        setCooldownUntil(data.cooldownUntil)
+        setIsCreating(false)
+        return
+      }
       if (data.conversation?.id) {
         router.push(`/chat/${data.conversation.id}`)
       }
     } catch {
       setIsCreating(false)
     }
+  }
+
+  const getCooldownDays = () => {
+    if (!cooldownUntil) return 0
+    const diff = new Date(cooldownUntil).getTime() - Date.now()
+    return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)))
+  }
+
+  const getCooldownProgress = () => {
+    if (!cooldownUntil) return 100
+    const daysLeft = getCooldownDays()
+    return Math.round(((7 - daysLeft) / 7) * 100)
   }
 
   const filteredConversations = search.trim()
@@ -136,11 +159,15 @@ function ChatListView() {
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Chats</h1>
           <button
             onClick={handleNewChat}
-            disabled={isCreating}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#1A1A2E] hover:bg-[#2D2D44] disabled:bg-[#E8E0D4] text-white disabled:text-[#9CA3AF] font-semibold rounded-xl transition-colors text-sm"
+            disabled={isCreating || !canCreateNew}
+            className={`flex items-center gap-2 px-4 py-2.5 font-semibold rounded-xl transition-colors text-sm ${
+              canCreateNew
+                ? 'bg-[#1A1A2E] hover:bg-[#2D2D44] text-white disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF]'
+                : 'bg-[#E8E0D4] text-[#9CA3AF] cursor-not-allowed'
+            }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            {isCreating ? 'Wird erstellt...' : 'Neuer Chat'}
+            {isCreating ? 'Wird erstellt...' : !canCreateNew ? `In ${getCooldownDays()} Tagen` : 'Neuer Chat'}
           </button>
         </div>
 
@@ -155,6 +182,36 @@ function ChatListView() {
             className="w-full pl-10 pr-4 py-3 bg-white border border-[#E8E0D4]/80 rounded-xl text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/30 focus:border-[#F5B731]/20 transition-all"
           />
         </div>
+
+        {/* Cooldown Notice */}
+        {!isLoading && !canCreateNew && cooldownUntil && (
+          <div className="bg-white rounded-2xl border border-[#E8E0D4]/60 p-5 sm:p-6 mb-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 bg-[#F5B731]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-[#1A1A2E] text-sm sm:text-base mb-1">
+                  Nächste Suche in {getCooldownDays()} Tag{getCooldownDays() !== 1 ? 'en' : ''} verfügbar
+                </h3>
+                <p className="text-sm text-[#6B7280] leading-relaxed mb-3">
+                  Um dir die bestmöglichen Ergebnisse liefern zu können, kannst du alle 7 Tage eine neue Suche starten. Schließe deine aktuelle Suche ab (49&thinsp;&euro;), um sofort eine neue Suche zu starten.
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-[#F5F0E8] rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-[#F5B731] to-[#E8930C] h-2 rounded-full transition-all"
+                      style={{ width: `${getCooldownProgress()}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-[#9CA3AF] whitespace-nowrap">
+                    noch {getCooldownDays()} Tag{getCooldownDays() !== 1 ? 'e' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Conversation Count */}
         {!isLoading && (
@@ -186,8 +243,12 @@ function ChatListView() {
             </p>
             <button
               onClick={handleNewChat}
-              disabled={isCreating}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm"
+              disabled={isCreating || !canCreateNew}
+              className={`inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-colors text-sm ${
+                canCreateNew
+                  ? 'bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E]'
+                  : 'bg-[#E8E0D4] text-[#9CA3AF] cursor-not-allowed'
+              }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               Ersten Chat starten
@@ -253,7 +314,14 @@ function ChatListView() {
 // ─── Anonymous: Direct Chat with Registration ───
 
 function AnonymousChatView() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat()
+  const initialGreeting = [{
+    id: 'greeting',
+    role: 'assistant' as const,
+    content: 'Hey! Schön, dass du hier bist. Ich bin dein persönlicher Job-Makler und finde Stellen, die du auf keinem Portal siehst. Erzähl mir \u2013 was würdest du gerne beruflich machen? Oder gibt es bestimmte Tätigkeiten, die dir besonders Spaß machen?',
+  }]
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    initialMessages: initialGreeting,
+  })
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 

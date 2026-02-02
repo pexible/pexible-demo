@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import NavAuthButtons from '@/components/NavAuthButtons'
 
 const articles = [
   {
@@ -101,11 +102,7 @@ export default function BlogPage() {
             <Link href="/#so-funktionierts" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">So funktioniert&apos;s</Link>
             <Link href="/blog" className="text-sm font-medium text-[#1A1A2E]">Blog</Link>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/chat" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 rounded-full hover:bg-[#2D2D44] transition-colors">
-              Jetzt starten
-            </Link>
-          </div>
+          <NavAuthButtons />
         </div>
       </nav>
 
