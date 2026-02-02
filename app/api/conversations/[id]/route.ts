@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getConversations, saveConversations, getResults } from '@/lib/storage'
+import { getConversations, saveConversations, getResults, getSearches } from '@/lib/storage'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
@@ -19,12 +19,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 
   let results = null
+  let searchPaid = false
   if (conversation.search_id) {
     const resultsData = await getResults()
     results = resultsData.results.filter(r => r.search_id === conversation.search_id)
+    const searchesData = await getSearches()
+    const search = searchesData.searches.find(s => s.id === conversation.search_id)
+    if (search) searchPaid = search.paid
   }
 
-  return NextResponse.json({ conversation, results })
+  return NextResponse.json({ conversation, results, searchPaid })
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
