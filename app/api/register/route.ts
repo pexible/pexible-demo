@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import bcrypt from 'bcryptjs'
-import { getUsers, saveUsers, type User } from '@/lib/storage'
+import { getUsers, saveUsers, getSearches, saveSearches, getResults, saveResults, type User, type Search } from '@/lib/storage'
+import { generateDemoResults } from '@/lib/demo-data'
 
 export async function POST(req: Request) {
   try {
-    const { email, password, first_name } = await req.json()
+    const { email, password, first_name, job_title, postal_code } = await req.json()
 
     if (!email || !password || !first_name) {
       return NextResponse.json(
@@ -55,10 +56,42 @@ export async function POST(req: Request) {
     usersData.users.push(user)
     await saveUsers(usersData)
 
+    // Optionally create search + results (from anonymous chat flow)
+    let searchResult = null
+    if (job_title && postal_code && /^\d{5}$/.test(postal_code)) {
+      const searchId = nanoid()
+      const demoResults = generateDemoResults(searchId, job_title, postal_code)
+
+      const search: Search = {
+        id: searchId,
+        user_id: user.id,
+        job_title,
+        postal_code,
+        status: 'completed',
+        paid: false,
+        total_results: demoResults.length,
+        created_at: new Date().toISOString()
+      }
+
+      const searchesData = await getSearches()
+      searchesData.searches.push(search)
+      await saveSearches(searchesData)
+
+      const resultsData = await getResults()
+      resultsData.results.push(...demoResults)
+      await saveResults(resultsData)
+
+      searchResult = {
+        search_id: searchId,
+        total_results: demoResults.length,
+      }
+    }
+
     return NextResponse.json({
       success: true,
       user_id: user.id,
       first_name: user.first_name,
+      search: searchResult,
     })
   } catch (error) {
     console.error('Registration error:', error)

@@ -16,5 +16,5 @@ export default withAuth(
 )
 
 export const config = {
-  matcher: ['/chat/:path*', '/upload/:path*', '/api/chat/:path*', '/api/upload/:path*', '/api/conversations/:path*']
+  matcher: ['/chat/:path+', '/upload/:path*', '/api/upload/:path*', '/api/conversations/:path*']
 }

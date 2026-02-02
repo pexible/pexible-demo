@@ -216,6 +216,8 @@ export default function ChatDetailPage() {
   const [storedMessages, setStoredMessages] = useState<Message[]>([])
   const [loadError, setLoadError] = useState('')
   const [storedResults, setStoredResults] = useState<PdfResult[]>([])
+  const [conversationSearchId, setConversationSearchId] = useState<string | null>(null)
+  const [searchPaid, setSearchPaid] = useState(false)
 
   // Load conversation on mount
   useEffect(() => {
@@ -226,6 +228,12 @@ export default function ChatDetailPage() {
       })
       .then(data => {
         setConversationStatus(data.conversation.status)
+        if (data.conversation.search_id) {
+          setConversationSearchId(data.conversation.search_id)
+        }
+        if (data.searchPaid) {
+          setSearchPaid(data.searchPaid)
+        }
         if (data.conversation.messages?.length > 0) {
           setStoredMessages(data.conversation.messages)
         }
@@ -270,7 +278,7 @@ export default function ChatDetailPage() {
     return <CompletedChatView messages={storedMessages} results={storedResults} userName={session?.user?.name || ''} />
   }
 
-  return <ActiveChatView conversationId={conversationId} initialMessages={storedMessages} storedResults={storedResults} userName={session?.user?.name || ''} onComplete={() => setConversationStatus('completed')} />
+  return <ActiveChatView conversationId={conversationId} initialMessages={storedMessages} storedResults={storedResults} userName={session?.user?.name || ''} onComplete={() => setConversationStatus('completed')} searchId={conversationSearchId} searchPaid={searchPaid} />
 }
 
 // ─── Completed Chat View (Read-Only) ───
@@ -332,7 +340,7 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
             <div className="relative bg-white rounded-2xl shadow-xl shadow-black/5 border border-[#E8E0D4]/80 overflow-hidden flex-1 flex flex-col">
               <div className="px-4 sm:px-5 py-3.5 border-b border-[#F0EBE2] flex items-center gap-3 bg-[#FDFBF7]">
                 <div className="w-9 h-9 bg-gradient-to-br from-[#F5B731] to-[#E8930C] rounded-full flex items-center justify-center flex-shrink-0 shadow-md shadow-[#F5B731]/20">
-                  <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 </div>
                 <div>
                   <p className="font-semibold text-[#1A1A2E] text-sm tracking-tight">pexible Job-Makler</p>
@@ -374,12 +382,14 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
 
 // ─── Active Chat View ───
 
-function ActiveChatView({ conversationId, initialMessages, storedResults, userName, onComplete }: {
+function ActiveChatView({ conversationId, initialMessages, storedResults, userName, onComplete, searchId, searchPaid }: {
   conversationId: string
   initialMessages: Message[]
   storedResults: PdfResult[]
   userName: string
   onComplete: () => void
+  searchId: string | null
+  searchPaid: boolean
 }) {
   const welcomeMsg: Message = {
     id: 'welcome',
@@ -396,14 +406,29 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paymentSearchId, setPaymentSearchId] = useState<string | null>(null)
+  const [paymentSearchId, setPaymentSearchId] = useState<string | null>(searchId)
   const [paymentHandled, setPaymentHandled] = useState<Set<string>>(new Set())
   const [isCompleted, setIsCompleted] = useState(false)
 
-  const [freemiumResults, setFreemiumResults] = useState<PdfResult[]>([])
+  // Auto-continue after registration redirect
+  const hasAutoSent = useRef(false)
+  useEffect(() => {
+    if (hasAutoSent.current) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('registered') === '1') {
+      hasAutoSent.current = true
+      window.history.replaceState({}, '', `/chat/${conversationId}`)
+      // Short delay to let useChat initialize with messages
+      setTimeout(() => {
+        append({ role: 'user', content: 'Ich habe mich gerade registriert. Bitte zeige mir meine Suchergebnisse!' })
+      }, 500)
+    }
+  }, [conversationId, append])
+
+  const [freemiumResults, setFreemiumResults] = useState<PdfResult[]>(storedResults.length > 0 ? storedResults.slice(0, 3) : [])
   const [allResults, setAllResults] = useState<PdfResult[]>(storedResults)
   const [resultJobTitle, setResultJobTitle] = useState(storedResults[0]?.job_title || '')
-  const [hasPaid, setHasPaid] = useState(storedResults.length > 3)
+  const [hasPaid, setHasPaid] = useState(searchPaid)
 
   // ─── Audio Mode ───
   const [audioMode, setAudioMode] = useState(false)
@@ -669,7 +694,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
               <div className="px-4 sm:px-5 py-3.5 border-b border-[#F0EBE2] flex items-center justify-between bg-[#FDFBF7]">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-gradient-to-br from-[#F5B731] to-[#E8930C] rounded-full flex items-center justify-center flex-shrink-0 shadow-md shadow-[#F5B731]/20">
-                    <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                   </div>
                   <div>
                     <p className="font-semibold text-[#1A1A2E] text-sm tracking-tight">pexible Job-Makler</p>
