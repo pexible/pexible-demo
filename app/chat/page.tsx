@@ -325,7 +325,7 @@ function AnonymousChatView() {
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Registration modal state
+  // Registration state - detected from tool results, shown as inline buttons
   const [showRegModal, setShowRegModal] = useState(false)
   const [regJobTitle, setRegJobTitle] = useState('')
   const [regPostalCode, setRegPostalCode] = useState('')
@@ -336,38 +336,43 @@ function AnonymousChatView() {
   const [regError, setRegError] = useState('')
   const [regLoading, setRegLoading] = useState(false)
 
-  // Auto-scroll
-  useEffect(() => {
-    const el = chatContainerRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [messages])
+  // Detect require_registration from tool results (no auto-popup)
+  const requiresRegistration = messages.some(
+    (m) => m.role === 'assistant' && m.toolInvocations?.some(
+      (inv) => inv.toolName === 'create_search' && inv.state === 'result' &&
+        (inv.result as Record<string, unknown>)?.action === 'require_registration'
+    )
+  )
 
-  // Auto-focus input
+  // Extract job_title and postal_code from tool result when needed
   useEffect(() => {
-    if (!isLoading && !showRegModal) {
-      inputRef.current?.focus({ preventScroll: true })
-    }
-  }, [isLoading, showRegModal])
-
-  // Detect require_registration from create_search tool
-  useEffect(() => {
-    for (const message of messages) {
-      if (message.role === 'assistant' && message.toolInvocations) {
-        for (const invocation of message.toolInvocations) {
-          if (
-            invocation.toolName === 'create_search' &&
-            invocation.state === 'result' &&
-            (invocation.result as Record<string, unknown>)?.action === 'require_registration'
-          ) {
-            const result = invocation.result as { job_title: string; postal_code: string }
+    if (!requiresRegistration) return
+    for (const m of messages) {
+      if (m.role === 'assistant' && m.toolInvocations) {
+        for (const inv of m.toolInvocations) {
+          if (inv.toolName === 'create_search' && inv.state === 'result' &&
+            (inv.result as Record<string, unknown>)?.action === 'require_registration') {
+            const result = inv.result as { job_title: string; postal_code: string }
             setRegJobTitle(result.job_title)
             setRegPostalCode(result.postal_code)
-            setShowRegModal(true)
           }
         }
       }
     }
-  }, [messages])
+  }, [requiresRegistration, messages])
+
+  // Auto-scroll
+  useEffect(() => {
+    const el = chatContainerRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages, isLoading, requiresRegistration])
+
+  // Auto-focus input
+  useEffect(() => {
+    if (!isLoading && !showRegModal && !requiresRegistration) {
+      inputRef.current?.focus({ preventScroll: true })
+    }
+  }, [isLoading, showRegModal, requiresRegistration])
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -519,27 +524,61 @@ function AnonymousChatView() {
                       </div>
                     </div>
                   )}
+
+                  {/* Inline registration / exit buttons - shown after AI finishes */}
+                  {requiresRegistration && !isLoading && !showRegModal && (
+                    <div className="flex justify-start mt-2">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <button
+                          onClick={() => setShowRegModal(true)}
+                          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm shadow-sm"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                          Kostenlos registrieren
+                        </button>
+                        <button
+                          onClick={() => { window.location.href = '/' }}
+                          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white hover:bg-[#F9F5EE] text-[#4A5568] border border-[#E8E0D4] font-medium rounded-xl transition-colors text-sm"
+                        >
+                          Beenden
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Chat Input */}
               <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-3 bg-white">
-                <form onSubmit={handleSubmit}>
+                {requiresRegistration && !showRegModal ? (
                   <div className="flex gap-2">
                     <input
-                      ref={inputRef}
-                      value={input}
-                      onChange={handleInputChange}
-                      placeholder="z.B. Marketing Manager in Berlin..."
-                      className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
-                      disabled={isLoading || showRegModal}
-                      autoFocus
+                      disabled
+                      placeholder="Bitte registriere dich, um fortzufahren"
+                      className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
                     />
-                    <button type="submit" disabled={isLoading || !input.trim() || showRegModal} className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
+                    <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                     </button>
                   </div>
-                </form>
+                ) : (
+                  <form onSubmit={handleSubmit}>
+                    <div className="flex gap-2">
+                      <input
+                        ref={inputRef}
+                        value={input}
+                        onChange={handleInputChange}
+                        placeholder="z.B. Marketing Manager in Berlin..."
+                        className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        disabled={isLoading || showRegModal}
+                        autoFocus
+                      />
+                      <button type="submit" disabled={isLoading || !input.trim() || showRegModal} className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
           </div>
