@@ -295,13 +295,12 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
       {/* Navbar */}
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/chat" className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/chat" className="flex items-center gap-1.5 text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] bg-white hover:bg-[#F9F5EE] border border-[#E8E0D4] px-3 py-2 rounded-xl transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              <span className="hidden sm:inline">Meine Chats</span>
             </Link>
-            <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
-          </div>
-          <div className="flex items-center gap-3">
             {results.length > 0 && (
               <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-3 py-2 bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm" title="Ergebnisse herunterladen">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -320,32 +319,26 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
         </div>
       </nav>
 
-      {/* Completed Banner */}
-      <div className="flex-shrink-0 bg-green-50 border-b border-green-200 px-4 py-2.5 text-center">
-        <div className="flex items-center justify-center gap-2 text-sm text-green-700">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span className="font-medium">Dieser Chat wurde abgeschlossen</span>
-          {results.length > 0 && (
-            <button onClick={handleDownloadPdf} className="ml-2 underline underline-offset-2 hover:no-underline font-semibold">
-              Ergebnisse als PDF herunterladen
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Messages (Read-Only) */}
       <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-3 sm:pt-6 pb-2 sm:pb-8 min-h-0 overflow-hidden">
         <div className="max-w-2xl mx-auto w-full relative flex-1 flex flex-col min-h-0">
           <div className="relative flex-1 flex flex-col min-h-0">
             <div className="relative bg-white rounded-2xl shadow-xl shadow-black/5 border border-[#E8E0D4]/80 overflow-hidden flex-1 flex flex-col">
-              <div className="px-4 sm:px-5 py-3.5 border-b border-[#F0EBE2] flex items-center gap-3 bg-[#FDFBF7]">
-                <div className="w-9 h-9 bg-gradient-to-br from-[#F5B731] to-[#E8930C] rounded-full flex items-center justify-center flex-shrink-0 shadow-md shadow-[#F5B731]/20">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              <div className="px-4 sm:px-5 py-3.5 border-b border-[#F0EBE2] flex items-center justify-between bg-[#FDFBF7]">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gradient-to-br from-[#F5B731] to-[#E8930C] rounded-full flex items-center justify-center flex-shrink-0 shadow-md shadow-[#F5B731]/20">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#1A1A2E] text-sm tracking-tight">pexible Job-Makler</p>
+                    <span className="text-xs text-green-600 font-medium">Chat abgeschlossen</span>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-[#1A1A2E] text-sm tracking-tight">pexible Job-Makler</p>
-                  <span className="text-xs text-[#9CA3AF]">Chat abgeschlossen</span>
-                </div>
+                {results.length > 0 && (
+                  <button onClick={handleDownloadPdf} className="p-2 text-[#9CA3AF] hover:text-[#F5B731] transition-colors rounded-lg hover:bg-[#F5EFE3]" title="Ergebnisse herunterladen">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
@@ -368,9 +361,24 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
                 </div>
               </div>
 
-              {/* Completed footer instead of input */}
-              <div className="border-t border-[#F0EBE2] px-4 py-3 bg-[#FDFBF7] text-center">
-                <p className="text-xs text-[#9CA3AF]">Dieser Chat ist abgeschlossen. <Link href="/chat" className="font-semibold text-[#F5B731] hover:text-[#E8930C]">Neuen Chat starten</Link></p>
+              {/* Disabled input area - visual feedback that chat is completed */}
+              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-3 bg-[#F9F5EE]">
+                <div className="flex gap-2">
+                  <input
+                    disabled
+                    placeholder="Chat abgeschlossen"
+                    className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
+                  />
+                  <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                  </button>
+                </div>
+                <div className="flex items-center justify-center gap-2 mt-2 text-xs text-[#9CA3AF]">
+                  <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>Suche abgeschlossen</span>
+                  <span className="mx-1">&bull;</span>
+                  <Link href="/chat" className="font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">Neue Suche starten</Link>
+                </div>
               </div>
             </div>
           </div>
@@ -394,7 +402,9 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
   const welcomeMsg: Message = {
     id: 'welcome',
     role: 'assistant',
-    content: '',
+    content: userName
+      ? `Hey ${userName}! Schön, dass du da bist. Ich bin dein persönlicher Job-Makler und finde Stellen, die du auf keinem Portal siehst. Erzähl mir \u2013 was würdest du gerne beruflich machen? Oder gibt es bestimmte Tätigkeiten, die dir besonders Spaß machen?`
+      : 'Hey! Schön, dass du hier bist. Ich bin dein persönlicher Job-Makler und finde Stellen, die du auf keinem Portal siehst. Erzähl mir \u2013 was würdest du gerne beruflich machen? Oder gibt es bestimmte Tätigkeiten, die dir besonders Spaß machen?',
   }
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, append } = useChat({
@@ -642,13 +652,12 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
       {/* Navbar */}
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/chat" className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/chat" className="flex items-center gap-1.5 text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] bg-white hover:bg-[#F9F5EE] border border-[#E8E0D4] px-3 py-2 rounded-xl transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              <span className="hidden sm:inline">Meine Chats</span>
             </Link>
-            <a href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</a>
-          </div>
-          <div className="flex items-center gap-3">
             {freemiumResults.length > 0 && (
               <button onClick={handleDownloadPdf} className="p-2 text-[#9CA3AF] hover:text-[#F5B731] transition-colors" title={hasPaid ? 'Alle Ergebnisse herunterladen' : 'Vorschau herunterladen'}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -770,8 +779,23 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
               {/* Chat Input / Audio Controls / Completed */}
               <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-3 bg-white">
                 {isCompleted ? (
-                  <div className="text-center py-1">
-                    <p className="text-xs text-[#9CA3AF]">Chat abgeschlossen. <Link href="/chat" className="font-semibold text-[#F5B731] hover:text-[#E8930C]">Zur Chat-Liste</Link></p>
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        disabled
+                        placeholder="Chat abgeschlossen"
+                        className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
+                      />
+                      <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mt-2 text-xs text-[#9CA3AF]">
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <span>Suche abgeschlossen</span>
+                      <span className="mx-1">&bull;</span>
+                      <Link href="/chat" className="font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">Neue Suche starten</Link>
+                    </div>
                   </div>
                 ) : audioMode ? (
                   <div className="flex flex-col items-center py-1">

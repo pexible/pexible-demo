@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import NavAuthButtons, { NavAuthButtonsMobile } from '@/components/NavAuthButtons'
 
 // ─── FAQ Data ───
 
@@ -79,13 +80,8 @@ export default function LandingPage() {
             <Link href="/blog" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">Blog</Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
-            <Link href="/login" className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] transition-colors px-4 py-2">
-              Anmelden
-            </Link>
-            <Link href="/chat" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 rounded-full hover:bg-[#2D2D44] transition-colors">
-              Jetzt starten
-            </Link>
+          <div className="hidden md:flex">
+            <NavAuthButtons />
           </div>
 
           {/* Mobile Menu Button */}
@@ -108,14 +104,7 @@ export default function LandingPage() {
             <a href="#so-funktionierts" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-2">So funktioniert&apos;s</a>
             <a href="#erfolgsgeschichten" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-2">Erfolgsgeschichten</a>
             <Link href="/blog" className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-2">Blog</Link>
-            <div className="pt-3 border-t border-[#E8E0D4]/60 space-y-2">
-              <Link href="/login" className="block text-center text-sm font-medium text-[#4A5568] px-5 py-2.5">
-                Anmelden
-              </Link>
-              <Link href="/chat" className="block text-center text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 rounded-full">
-                Jetzt starten
-              </Link>
-            </div>
+            <NavAuthButtonsMobile onNavigate={() => setMobileMenuOpen(false)} />
           </div>
         )}
       </nav>
