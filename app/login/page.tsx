@@ -48,7 +48,7 @@ export default function LoginPage() {
             <p className="mt-2 text-sm text-[#6B7280]">Melde dich an, um zu deinen Chats zu gelangen</p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#E8E0D4]/60 shadow-lg shadow-black/5 p-6">
+          <div className="bg-white rounded-2xl border border-[#E8E0D4]/60 shadow-lg shadow-black/5 p-5 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-[#1A1A2E] mb-1.5">
@@ -60,7 +60,9 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="deine@email.de"
-                  className="w-full px-4 py-3 bg-[#FDFBF7] border border-[#E8E0D4] rounded-xl text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all text-sm"
+                  autoComplete="email"
+                  inputMode="email"
+                  className="w-full px-4 py-3 min-h-[44px] bg-[#FDFBF7] border border-[#E8E0D4] rounded-xl text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all text-[16px] sm:text-sm"
                   required
                   autoFocus
                 />
@@ -76,7 +78,8 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Dein Passwort"
-                  className="w-full px-4 py-3 bg-[#FDFBF7] border border-[#E8E0D4] rounded-xl text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all text-sm"
+                  autoComplete="current-password"
+                  className="w-full px-4 py-3 min-h-[44px] bg-[#FDFBF7] border border-[#E8E0D4] rounded-xl text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all text-[16px] sm:text-sm"
                   required
                 />
               </div>
@@ -90,7 +93,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-[#1A1A2E] hover:bg-[#2D2D44] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-colors text-sm"
+                className="w-full py-3 min-h-[44px] bg-[#1A1A2E] hover:bg-[#2D2D44] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-colors text-sm"
               >
                 {isLoading ? 'Wird geladen...' : 'Anmelden'}
               </button>
@@ -99,13 +102,13 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-[#6B7280] mt-6">
             Noch kein Konto?{' '}
-            <Link href="/register" className="font-semibold text-[#1A1A2E] hover:text-[#F5B731] transition-colors">
+            <Link href="/register" className="font-semibold text-[#1A1A2E] hover:text-[#F5B731] transition-colors py-1 inline-block">
               Jetzt registrieren
             </Link>
           </p>
 
           <p className="text-center text-xs text-[#9CA3AF] mt-3">
-            <Link href="/" className="hover:text-[#1A1A2E] transition-colors underline underline-offset-2">
+            <Link href="/" className="hover:text-[#1A1A2E] transition-colors underline underline-offset-2 py-1 inline-block">
               Zurück zur Startseite
             </Link>
           </p>
