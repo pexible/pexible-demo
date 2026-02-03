@@ -124,10 +124,10 @@ export default function BlogPage() {
         <div className="max-w-5xl mx-auto">
           <Link href={`/blog#${articles[0].slug}`} className="group block bg-white rounded-2xl border border-[#E8E0D4]/60 overflow-hidden hover:shadow-xl hover:shadow-black/5 transition-all duration-300">
             <div className="grid md:grid-cols-2 gap-0">
-              <div className="h-56 md:h-auto bg-gradient-to-br from-[#FEF3D0] via-[#FDEDB8] to-[#F5B731]/20 flex items-center justify-center">
+              <div className="h-44 sm:h-56 md:h-auto bg-gradient-to-br from-[#FEF3D0] via-[#FDEDB8] to-[#F5B731]/20 flex items-center justify-center">
                 <svg className="w-16 h-16 text-[#E8930C]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={0.75} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
               </div>
-              <div className="p-8 sm:p-10 flex flex-col justify-center">
+              <div className="p-5 sm:p-8 md:p-10 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-xs font-semibold text-[#F5B731] bg-[#F5B731]/10 px-2.5 py-1 rounded-full">{articles[0].category}</span>
                   <span className="text-xs text-[#9CA3AF]">{articles[0].date}</span>
@@ -153,7 +153,7 @@ export default function BlogPage() {
           <div className="grid md:grid-cols-3 gap-5">
             {articles.slice(1).map((article) => (
               <article key={article.slug} id={article.slug} className="group bg-white rounded-2xl border border-[#E8E0D4]/60 overflow-hidden hover:shadow-lg hover:shadow-black/5 transition-all duration-300">
-                <div className="h-40 bg-gradient-to-br from-[#FEF3D0] to-[#FDEDB8] flex items-center justify-center">
+                <div className="h-32 sm:h-40 bg-gradient-to-br from-[#FEF3D0] to-[#FDEDB8] flex items-center justify-center">
                   <svg className="w-10 h-10 text-[#E8930C]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
                 </div>
                 <div className="p-5">
@@ -189,7 +189,7 @@ export default function BlogPage() {
               <p className="text-[#9CA3AF] mb-6 max-w-md mx-auto text-sm">
                 Unser KI-Makler findet passende Stellen für dich. Kostenlos starten, Ergebnisse sofort erhalten.
               </p>
-              <Link href="/chat" className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
+              <Link href="/chat" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 min-h-[48px] bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
                 Jetzt Jobsuche starten
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
