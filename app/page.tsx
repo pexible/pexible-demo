@@ -87,7 +87,7 @@ export default function LandingPage() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-[#4A5568] hover:text-[#1A1A2E]"
+            className="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#4A5568] hover:text-[#1A1A2E]"
           >
             {mobileMenuOpen ? (
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -99,11 +99,11 @@ export default function LandingPage() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#E8E0D4]/60 bg-[#FDF8F0] px-4 py-4 space-y-3">
-            <a href="#funktionen" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-2">Funktionen</a>
-            <a href="#so-funktionierts" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-2">So funktioniert&apos;s</a>
-            <a href="#erfolgsgeschichten" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-2">Erfolgsgeschichten</a>
-            <Link href="/blog" className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-2">Blog</Link>
+          <div className="md:hidden border-t border-[#E8E0D4]/60 bg-[#FDF8F0] px-4 py-3 space-y-1">
+            <a href="#funktionen" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">Funktionen</a>
+            <a href="#so-funktionierts" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">So funktioniert&apos;s</a>
+            <a href="#erfolgsgeschichten" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">Erfolgsgeschichten</a>
+            <Link href="/blog" className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">Blog</Link>
             <NavAuthButtonsMobile onNavigate={() => setMobileMenuOpen(false)} />
           </div>
         )}
@@ -117,16 +117,16 @@ export default function LandingPage() {
 
         <div className="max-w-4xl mx-auto text-center relative">
           {/* Announcement Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#E8E0D4] rounded-full text-sm mb-8 shadow-sm">
-            <span className="bg-[#E8930C] text-white text-xs font-bold px-2 py-0.5 rounded-full">NEU</span>
-            <span className="text-[#4A5568]">Dein persönlicher KI Job-Makler &ndash; jetzt verfügbar</span>
-            <Link href="/chat" className="text-[#1A1A2E] font-medium hover:underline">&rarr;</Link>
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-[#E8E0D4] rounded-full text-xs sm:text-sm mb-6 sm:mb-8 shadow-sm">
+            <span className="bg-[#E8930C] text-white text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0">NEU</span>
+            <span className="text-[#4A5568]">Dein KI Job-Makler &ndash; jetzt verfügbar</span>
+            <Link href="/chat" className="text-[#1A1A2E] font-medium hover:underline flex-shrink-0">&rarr;</Link>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold leading-[1.08] tracking-tight mb-6">
+          <h1 className="text-[2.5rem] sm:text-6xl md:text-7xl font-extrabold leading-[1.1] tracking-tight mb-6">
             <span className="block">Wo deine Jobsuche</span>
-            <span className="inline-block relative mr-3 sm:mr-4">
+            <span className="inline-block relative mr-2 sm:mr-4">
               <span className="relative">
                 <span className="text-[#9CA3AF]">aufhört</span>
                 <svg className="absolute left-[-4px] top-1/2 w-[calc(100%+8px)]" viewBox="0 0 200 8" preserveAspectRatio="none" style={{ transform: 'translateY(-50%) rotate(-1.5deg)' }}>
@@ -146,13 +146,13 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
               href="/chat"
-              className="w-full sm:w-auto text-center px-8 py-3.5 bg-[#1A1A2E] text-white font-semibold rounded-full hover:bg-[#2D2D44] transition-all text-sm shadow-lg shadow-[#1A1A2E]/10"
+              className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-[#1A1A2E] text-white font-semibold rounded-full hover:bg-[#2D2D44] transition-all text-sm shadow-lg shadow-[#1A1A2E]/10"
             >
               Kostenlos starten
             </Link>
             <a
               href="#so-funktionierts"
-              className="w-full sm:w-auto text-center px-8 py-3.5 bg-white text-[#1A1A2E] font-semibold rounded-full border border-[#E8E0D4] hover:border-[#D1C9BD] hover:bg-[#F9F5EE] transition-all text-sm"
+              className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-white text-[#1A1A2E] font-semibold rounded-full border border-[#E8E0D4] hover:border-[#D1C9BD] hover:bg-[#F9F5EE] transition-all text-sm"
             >
               So funktioniert&apos;s
             </a>
@@ -211,7 +211,7 @@ export default function LandingPage() {
               </div>
 
               {/* Chat Messages */}
-              <div className="px-5 py-6 space-y-4 bg-[#FEFCF9]" style={{ minHeight: '320px' }}>
+              <div className="px-4 sm:px-5 py-4 sm:py-6 space-y-3 sm:space-y-4 bg-[#FEFCF9]">
                 <div className="flex justify-start">
                   <div className="max-w-[85%] bg-[#F5F0E8] rounded-2xl rounded-tl-md px-4 py-3 text-sm text-[#1A1A2E] leading-relaxed">
                     Hey! Ich bin dein persönlicher Job-Makler. Ich finde Stellen, die nicht auf den großen Portalen stehen. In welchem Bereich suchst du?
@@ -536,7 +536,7 @@ export default function LandingPage() {
           <div className="space-y-3">
             {faqItems.map((item, i) => (
               <div key={i} className="bg-white rounded-2xl border border-[#E8E0D4]/60 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-black/5">
-                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-6 py-5 text-left">
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left min-h-[44px]">
                   <span className="font-semibold text-[#1A1A2E] text-sm sm:text-base pr-4">{item.q}</span>
                   <svg className={`w-5 h-5 text-[#9CA3AF] flex-shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                 </button>
@@ -559,10 +559,10 @@ export default function LandingPage() {
               <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4 leading-tight">Bereit, deinen<br />Traumjob zu finden?</h2>
               <p className="text-[#9CA3AF] mb-8 max-w-md mx-auto">Starte jetzt deine kostenlose Suche und entdecke Stellen, die du auf keinem Portal findest.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link href="/chat" className="w-full sm:w-auto text-center px-8 py-3.5 bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
+                <Link href="/chat" className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
                   Kostenlos starten
                 </Link>
-                <a href="#so-funktionierts" className="w-full sm:w-auto text-center px-8 py-3.5 text-white/80 hover:text-white font-medium rounded-full border border-white/20 hover:border-white/40 transition-all text-sm">
+                <a href="#so-funktionierts" className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center text-white/80 hover:text-white font-medium rounded-full border border-white/20 hover:border-white/40 transition-all text-sm">
                   Mehr erfahren
                 </a>
               </div>

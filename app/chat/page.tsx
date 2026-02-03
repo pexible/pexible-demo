@@ -441,16 +441,16 @@ function AnonymousChatView() {
   }
 
   return (
-    <div className="h-screen h-[100dvh] bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
+    <div className="h-screen-safe bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
       {/* Navbar */}
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
           <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] transition-colors px-4 py-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link href="/login" className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] transition-colors px-3 py-2.5 min-h-[44px] flex items-center">
               Anmelden
             </Link>
-            <Link href="/register" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 rounded-full hover:bg-[#2D2D44] transition-colors">
+            <Link href="/register" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors">
               Registrieren
             </Link>
           </div>
@@ -458,20 +458,20 @@ function AnonymousChatView() {
       </nav>
 
       {/* Chat Section */}
-      <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-3 sm:pt-10 pb-2 sm:pb-8 min-h-0 overflow-hidden">
+      <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-2 sm:pt-10 pb-1 sm:pb-8 min-h-0 overflow-hidden">
         <div className="hidden sm:block absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-[#F5B731]/[0.05] rounded-full blur-[120px] pointer-events-none" />
         <div className="hidden sm:block absolute bottom-[-50px] left-[-150px] w-[350px] h-[350px] bg-[#E8930C]/[0.03] rounded-full blur-[100px] pointer-events-none" />
 
         <div className="max-w-2xl mx-auto w-full relative flex-1 flex flex-col min-h-0">
-          <div className="text-center mb-2 sm:mb-6">
+          <div className="text-center mb-1 sm:mb-6">
             <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-[#E8E0D4] rounded-full text-xs text-[#6B7280] mb-4 shadow-sm">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
               KI-gest&uuml;tzte Jobsuche &ndash; jetzt live
             </div>
-            <h1 className="text-xl sm:text-3xl font-extrabold leading-tight tracking-tight text-[#1A1A2E]">
+            <h1 className="text-lg sm:text-3xl font-extrabold leading-tight tracking-tight text-[#1A1A2E]">
               Dein pers&ouml;nlicher <span className="text-[#F5B731]">Job-Makler</span>
             </h1>
-            <p className="mt-1 sm:mt-2 text-xs sm:text-sm text-[#6B7280]">
+            <p className="mt-0.5 sm:mt-2 text-xs sm:text-sm text-[#6B7280] hidden sm:block">
               Beschreibe deinen Traumjob &ndash; wir finden passende Stellen.
             </p>
           </div>
@@ -496,14 +496,14 @@ function AnonymousChatView() {
               </div>
 
               {/* Chat Messages */}
-              <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
+              <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
                 <div className="space-y-3">
                   {messages.map((message) => {
                     const visibleContent = getVisibleContent(message.content)
                     if (!visibleContent) return null
                     return (
                       <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                        <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl px-3.5 sm:px-4 py-2.5 text-sm leading-relaxed ${
                           message.role === 'user'
                             ? 'bg-[#F5B731] text-[#1A1A2E] font-medium rounded-tr-md'
                             : 'bg-[#F5F0E8] text-[#1A1A2E] rounded-tl-md'
@@ -531,14 +531,14 @@ function AnonymousChatView() {
                       <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <button
                           onClick={() => setShowRegModal(true)}
-                          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm shadow-sm"
+                          className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm shadow-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                           Kostenlos registrieren
                         </button>
                         <button
                           onClick={() => { window.location.href = '/' }}
-                          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white hover:bg-[#F9F5EE] text-[#4A5568] border border-[#E8E0D4] font-medium rounded-xl transition-colors text-sm"
+                          className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] bg-white hover:bg-[#F9F5EE] text-[#4A5568] border border-[#E8E0D4] font-medium rounded-xl transition-colors text-sm"
                         >
                           Beenden
                         </button>
@@ -549,15 +549,15 @@ function AnonymousChatView() {
               </div>
 
               {/* Chat Input */}
-              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-3 bg-white">
+              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-2.5 sm:py-3 bg-white pb-safe">
                 {requiresRegistration && !showRegModal ? (
                   <div className="flex gap-2">
                     <input
                       disabled
                       placeholder="Bitte registriere dich, um fortzufahren"
-                      className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
+                      className="flex-1 px-4 py-3 min-h-[44px] bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
                     />
-                    <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
+                    <button disabled className="px-4 py-3 min-h-[44px] min-w-[44px] bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                     </button>
                   </div>
@@ -569,11 +569,13 @@ function AnonymousChatView() {
                         value={input}
                         onChange={handleInputChange}
                         placeholder="z.B. Marketing Manager in Berlin..."
-                        className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        enterKeyHint="send"
+                        autoComplete="off"
+                        className="flex-1 px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
                         disabled={isLoading || showRegModal}
                         autoFocus
                       />
-                      <button type="submit" disabled={isLoading || !input.trim() || showRegModal} className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
+                      <button type="submit" disabled={isLoading || !input.trim() || showRegModal} className="px-4 py-3 min-h-[44px] min-w-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                       </button>
                     </div>
@@ -603,28 +605,30 @@ function AnonymousChatView() {
 
       {/* Registration Modal */}
       {showRegModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center z-[60] p-4 overflow-y-auto overscroll-contain">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative my-auto">
-            <button onClick={() => setShowRegModal(false)} className="absolute top-4 right-4 text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] overflow-y-auto overscroll-contain" onClick={(e) => { if (e.target === e.currentTarget) setShowRegModal(false) }}>
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 relative sm:my-4 sm:mx-4 max-h-[90vh] overflow-y-auto pb-safe">
+            <button onClick={() => setShowRegModal(false)} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <div className="text-center mb-5 sm:mb-6">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
-              <h2 className="text-xl font-bold text-[#1A1A2E]">Ergebnisse freischalten</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-[#1A1A2E]">Ergebnisse freischalten</h2>
               <p className="text-sm text-[#6B7280] mt-1">Erstelle ein kostenloses Konto um deine Suchergebnisse zu sehen.</p>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-4">
+            <form onSubmit={handleRegister} className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[#4A5568] mb-1.5">Vorname</label>
                 <input
                   type="text"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
+                  autoComplete="given-name"
+                  inputMode="text"
+                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
                   placeholder="Max"
                   disabled={regLoading}
                 />
@@ -635,7 +639,9 @@ function AnonymousChatView() {
                   type="email"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
+                  autoComplete="email"
+                  inputMode="email"
+                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
                   placeholder="max@beispiel.de"
                   disabled={regLoading}
                 />
@@ -646,7 +652,8 @@ function AnonymousChatView() {
                   type="password"
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
                   placeholder="Mindestens 8 Zeichen"
                   disabled={regLoading}
                 />
@@ -657,7 +664,8 @@ function AnonymousChatView() {
                   type="password"
                   value={regConfirm}
                   onChange={(e) => setRegConfirm(e.target.value)}
-                  className="w-full px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
                   placeholder="Passwort wiederholen"
                   disabled={regLoading}
                 />
@@ -670,7 +678,7 @@ function AnonymousChatView() {
               <button
                 type="submit"
                 disabled={regLoading}
-                className="w-full py-3 bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-[#1A1A2E] font-semibold rounded-xl transition-colors"
+                className="w-full py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-[#1A1A2E] font-semibold rounded-xl transition-colors"
               >
                 {regLoading ? 'Wird erstellt...' : 'Kostenloses Konto erstellen'}
               </button>

@@ -138,10 +138,10 @@ function CheckoutForm({ searchId, onSuccess, onCancel }: { searchId: string; onS
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
       {error && <div className="bg-red-500/10 text-red-400 border border-red-500/20 text-sm p-3 rounded-xl">{error}</div>}
-      <button type="submit" disabled={isProcessing || !stripe || !elements} className="w-full py-3 bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-white/10 disabled:text-gray-600 text-black font-semibold rounded-xl transition-colors">
+      <button type="submit" disabled={isProcessing || !stripe || !elements} className="w-full py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#e5a820] disabled:bg-white/10 disabled:text-gray-600 text-black font-semibold rounded-xl transition-colors">
         {isProcessing ? 'Wird verarbeitet...' : '49,00 \u20AC bezahlen'}
       </button>
-      <button type="button" onClick={onCancel} disabled={isProcessing} className="w-full py-2 text-gray-400 hover:text-gray-200 text-sm font-medium transition-colors">Abbrechen</button>
+      <button type="button" onClick={onCancel} disabled={isProcessing} className="w-full py-2.5 min-h-[44px] text-gray-400 hover:text-gray-200 text-sm font-medium transition-colors">Abbrechen</button>
     </form>
   )
 }
@@ -164,9 +164,9 @@ function PaymentModal({ isOpen, searchId, onClose, onSuccess }: { isOpen: boolea
   if (!isOpen || !searchId) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center z-[60] p-4 overflow-y-auto overscroll-contain">
-      <div className="bg-[#1a1a24] border border-white/10 rounded-2xl shadow-2xl max-w-md w-full p-6 relative my-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-300 transition-colors">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] overflow-y-auto overscroll-contain" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="bg-[#1a1a24] border border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 relative sm:my-4 sm:mx-4 max-h-[90vh] overflow-y-auto pb-safe">
+        <button onClick={onClose} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-300 transition-colors p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
         <div className="text-center mb-4 sm:mb-6">
@@ -336,7 +336,7 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
   }
 
   return (
-    <div className="h-screen h-[100dvh] bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
+    <div className="h-screen-safe bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
       {/* Navbar */}
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
@@ -386,14 +386,14 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
                 )}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
                 <div className="space-y-3">
                   {messages.map((message) => {
                     const visibleContent = getVisibleContent(message.content)
                     if (!visibleContent) return null
                     return (
                       <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                        <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl px-3.5 sm:px-4 py-2.5 text-sm leading-relaxed ${
                           message.role === 'user'
                             ? 'bg-[#F5B731] text-[#1A1A2E] font-medium rounded-tr-md'
                             : 'bg-[#F5F0E8] text-[#1A1A2E] rounded-tl-md'
@@ -407,7 +407,7 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
               </div>
 
               {/* Disabled input area - visual feedback that chat is completed */}
-              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-3 bg-[#F9F5EE]">
+              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-2.5 sm:py-3 bg-[#F9F5EE] pb-safe">
                 <div className="flex gap-2">
                   <input
                     disabled
@@ -693,7 +693,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
   }
 
   return (
-    <div className="h-screen h-[100dvh] bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
+    <div className="h-screen-safe bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
       {/* Navbar */}
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
@@ -766,7 +766,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
               </div>
 
               {/* Chat Messages */}
-              <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
+              <div ref={chatContainerRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-3 sm:py-4 bg-[#FEFCF9]">
                 <div className="space-y-3">
                   {messages.map((message, idx) => {
                     const visibleContent = getVisibleContent(message.content)
@@ -778,7 +778,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
 
                     return (
                       <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                        <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl px-3.5 sm:px-4 py-2.5 text-sm leading-relaxed ${
                           message.role === 'user'
                             ? 'bg-[#F5B731] text-[#1A1A2E] font-medium rounded-tr-md'
                             : 'bg-[#F5F0E8] text-[#1A1A2E] rounded-tl-md'
@@ -822,7 +822,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
               </div>
 
               {/* Chat Input / Audio Controls / Completed */}
-              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-3 bg-white">
+              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-2.5 sm:py-3 bg-white pb-safe">
                 {paymentSearchId && !showPaymentModal && !hasPaid && !isCompleted && (
                   <div className="mb-2">
                     <button
@@ -901,14 +901,16 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                         value={input}
                         onChange={handleInputChange}
                         placeholder="z.B. Marketing Manager in Berlin..."
-                        className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        enterKeyHint="send"
+                        autoComplete="off"
+                        className="flex-1 px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
                         disabled={isLoading}
                         autoFocus
                       />
-                      <button type="button" onClick={handleToggleAudio} className="px-3 py-3 bg-[#F9F5EE] hover:bg-[#F5EFE3] border border-[#E8E0D4] rounded-xl transition-all flex-shrink-0 text-[#9CA3AF] hover:text-[#F5B731]" title="Sprachmodus">
+                      <button type="button" onClick={handleToggleAudio} className="px-3 py-3 min-h-[44px] min-w-[44px] bg-[#F9F5EE] hover:bg-[#F5EFE3] border border-[#E8E0D4] rounded-xl transition-all flex-shrink-0 text-[#9CA3AF] hover:text-[#F5B731]" title="Sprachmodus">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                       </button>
-                      <button type="submit" disabled={isLoading || !input.trim()} className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
+                      <button type="submit" disabled={isLoading || !input.trim()} className="px-4 py-3 min-h-[44px] min-w-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                       </button>
                     </div>
