@@ -126,7 +126,7 @@ function CheckoutForm({ searchId, onSuccess, onCancel }: { searchId: string; onS
     if (!stripe || !elements) return
     setIsProcessing(true)
     setError('')
-    const { error: stripeError, paymentIntent } = await stripe.confirmPayment({ elements, confirmParams: { return_url: window.location.href }, redirect: 'if_required' })
+    const { error: stripeError, paymentIntent } = await stripe.confirmPayment({ elements, confirmParams: { return_url: `${window.location.origin}${window.location.pathname}?search_id=${searchId}` }, redirect: 'if_required' })
     if (stripeError) { setError(stripeError.message || 'Zahlung fehlgeschlagen'); setIsProcessing(false) }
     else if (paymentIntent?.status === 'succeeded') {
       await fetch('/api/payment-confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payment_intent_id: paymentIntent.id, search_id: searchId }) })
@@ -218,25 +218,41 @@ export default function ChatDetailPage() {
   const [storedResults, setStoredResults] = useState<PdfResult[]>([])
   const [conversationSearchId, setConversationSearchId] = useState<string | null>(null)
   const [searchPaid, setSearchPaid] = useState(false)
+  const [paymentRedirectConfirmed, setPaymentRedirectConfirmed] = useState(false)
 
-  // Load conversation on mount
+  // Load conversation on mount (with Stripe redirect handling for Klarna etc.)
   useEffect(() => {
-    fetch(`/api/conversations/${conversationId}`)
-      .then(res => {
+    const params = new URLSearchParams(window.location.search)
+    const paymentIntentParam = params.get('payment_intent')
+    const redirectStatus = params.get('redirect_status')
+    const redirectSearchId = params.get('search_id')
+
+    const loadConversation = async () => {
+      let paymentConfirmed = false
+
+      // Handle Stripe redirect (e.g., after Klarna payment)
+      if (paymentIntentParam && redirectStatus === 'succeeded' && redirectSearchId) {
+        try {
+          const confirmRes = await fetch('/api/payment-confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment_intent_id: paymentIntentParam, search_id: redirectSearchId }),
+          })
+          if (confirmRes.ok) paymentConfirmed = true
+        } catch {
+          // Payment confirmation failed, continue with normal load
+        }
+        window.history.replaceState({}, '', `/chat/${conversationId}`)
+      }
+
+      try {
+        const res = await fetch(`/api/conversations/${conversationId}`)
         if (!res.ok) throw new Error('Not found')
-        return res.json()
-      })
-      .then(data => {
-        setConversationStatus(data.conversation.status)
-        if (data.conversation.search_id) {
-          setConversationSearchId(data.conversation.search_id)
-        }
-        if (data.searchPaid) {
-          setSearchPaid(data.searchPaid)
-        }
-        if (data.conversation.messages?.length > 0) {
-          setStoredMessages(data.conversation.messages)
-        }
+        const data = await res.json()
+        setConversationStatus(paymentConfirmed ? 'completed' : data.conversation.status)
+        if (data.conversation.search_id) setConversationSearchId(data.conversation.search_id)
+        if (data.searchPaid || paymentConfirmed) setSearchPaid(true)
+        if (data.conversation.messages?.length > 0) setStoredMessages(data.conversation.messages)
         if (data.results) {
           setStoredResults(data.results.map((r: { company_name: string; job_title: string; job_url: string; description: string }) => ({
             company_name: r.company_name,
@@ -245,12 +261,24 @@ export default function ChatDetailPage() {
             description: r.description,
           })))
         }
-        setConversationLoaded(true)
-      })
-      .catch(() => {
-        setLoadError('Chat nicht gefunden')
-        setConversationLoaded(true)
-      })
+        if (paymentConfirmed) {
+          fetch(`/api/conversations/${conversationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'completed' }),
+          }).catch(() => {})
+        }
+      } catch {
+        if (paymentConfirmed) {
+          setPaymentRedirectConfirmed(true)
+        } else {
+          setLoadError('Chat nicht gefunden')
+        }
+      }
+      setConversationLoaded(true)
+    }
+
+    loadConversation()
   }, [conversationId])
 
   if (!conversationLoaded) {
@@ -270,6 +298,23 @@ export default function ChatDetailPage() {
       <div className="h-screen bg-[#FDF8F0] flex flex-col items-center justify-center px-4">
         <p className="text-[#6B7280] mb-4">{loadError}</p>
         <Link href="/chat" className="text-sm font-semibold text-[#F5B731] hover:text-[#E8930C]">Zurück zur Chat-Liste</Link>
+      </div>
+    )
+  }
+
+  if (paymentRedirectConfirmed) {
+    return (
+      <div className="h-screen bg-[#FDF8F0] flex flex-col items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          </div>
+          <h2 className="text-xl font-bold text-[#1A1A2E] mb-2">Zahlung erfolgreich!</h2>
+          <p className="text-[#6B7280] mb-6">Deine Zahlung wurde bestätigt. Deine vollständigen Suchergebnisse werden für dich vorbereitet.</p>
+          <Link href="/chat" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F5B731] hover:bg-[#E8930C] text-white font-semibold rounded-xl transition-colors">
+            Zurück zu deinen Chats
+          </Link>
+        </div>
       </div>
     )
   }
@@ -320,10 +365,10 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
       </nav>
 
       {/* Messages (Read-Only) */}
-      <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-3 sm:pt-6 pb-2 sm:pb-8 min-h-0 overflow-hidden">
+      <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-3 sm:pt-6 pb-2 sm:pb-8 min-h-0">
         <div className="max-w-2xl mx-auto w-full relative flex-1 flex flex-col min-h-0">
           <div className="relative flex-1 flex flex-col min-h-0">
-            <div className="relative bg-white rounded-2xl shadow-xl shadow-black/5 border border-[#E8E0D4]/80 overflow-hidden flex-1 flex flex-col">
+            <div className="relative bg-white rounded-2xl shadow-xl shadow-black/5 border border-[#E8E0D4]/80 overflow-hidden flex-1 flex flex-col min-h-0">
               <div className="px-4 sm:px-5 py-3.5 border-b border-[#F0EBE2] flex items-center justify-between bg-[#FDFBF7]">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-gradient-to-br from-[#F5B731] to-[#E8930C] rounded-full flex items-center justify-center flex-shrink-0 shadow-md shadow-[#F5B731]/20">
@@ -778,6 +823,17 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
 
               {/* Chat Input / Audio Controls / Completed */}
               <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-3 bg-white">
+                {paymentSearchId && !showPaymentModal && !hasPaid && !isCompleted && (
+                  <div className="mb-2">
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#F5B731]/10 hover:bg-[#F5B731]/20 border border-[#F5B731]/30 rounded-xl text-sm font-medium text-[#1A1A2E] transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                      Zahlung fortsetzen
+                    </button>
+                  </div>
+                )}
                 {isCompleted ? (
                   <div>
                     <div className="flex gap-2">
@@ -881,7 +937,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
       </section>
 
       {/* Payment Modal */}
-      <PaymentModal isOpen={showPaymentModal} searchId={paymentSearchId} onClose={() => { setShowPaymentModal(false); setPaymentSearchId(null) }} onSuccess={handlePaymentSuccess} />
+      <PaymentModal isOpen={showPaymentModal} searchId={paymentSearchId} onClose={() => setShowPaymentModal(false)} onSuccess={handlePaymentSuccess} />
     </div>
   )
 }
