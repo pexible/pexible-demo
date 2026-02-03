@@ -2,6 +2,8 @@
 
 Eine vollstaendige Demo-Anwendung fuer pexible: ein KI-gesteuerter Job-Makler, der Nutzer im Gespraech durch die Jobsuche fuehrt -- von der Berufsklaerung bis zur Bezahlung.
 
+> **Fuer Entwickler und Claude Code Sessions:** Siehe [CLAUDE.md](./CLAUDE.md) fuer detaillierte Architektur, Regeln, Datenmodelle, API-Schemas und Aenderungsanleitungen.
+
 ## Features
 
 - **Konversationaler AI-Agent** (GPT-4o) mit 8-Phasen-Gespraechsablauf

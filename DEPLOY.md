@@ -4,7 +4,7 @@
 
 - GitHub-Repository mit dem Quellcode
 - Vercel-Account (kostenlos: https://vercel.com)
-- Umgebungsvariablen bereit (siehe unten)
+- Umgebungsvariablen bereit (siehe unten, Details in [CLAUDE.md](./CLAUDE.md#10-umgebungsvariablen))
 
 ---
 
