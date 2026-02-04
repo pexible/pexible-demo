@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { getSearches, saveSearches } from '@/lib/storage'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: Request) {
   const secretKey = process.env.STRIPE_SECRET_KEY
@@ -27,12 +27,8 @@ export async function POST(req: Request) {
 
     if (paymentIntent.status === 'succeeded') {
       try {
-        const searchesData = await getSearches()
-        const idx = searchesData.searches.findIndex(s => s.id === search_id)
-        if (idx !== -1) {
-          searchesData.searches[idx].paid = true
-          await saveSearches(searchesData)
-        }
+        const admin = createAdminClient()
+        await admin.from('searches').update({ paid: true }).eq('id', search_id)
       } catch {
         // Storage may not be available on serverless
       }
