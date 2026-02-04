@@ -1,6 +1,7 @@
 'use client'
 
-import { useSession, signIn, signOut } from 'next-auth/react'
+import { useUser } from '@/lib/hooks/useUser'
+import { createClient } from '@/lib/supabase/client'
 import { useChat } from 'ai/react'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -17,6 +18,8 @@ interface ConversationItem {
   created_at: string
   updated_at: string
 }
+
+type OtpStep = 'email' | 'otp' | 'creating'
 
 // ─── Helpers ───
 
@@ -44,9 +47,9 @@ function getVisibleContent(content: string) {
 // ─── Main Page (Dual Mode) ───
 
 export default function ChatPage() {
-  const { data: session, status } = useSession()
+  const { user, isLoading: authLoading } = useUser()
 
-  if (status === 'loading') {
+  if (authLoading) {
     return (
       <div className="h-screen bg-[#FDF8F0] flex items-center justify-center">
         <div className="flex space-x-2">
@@ -58,14 +61,14 @@ export default function ChatPage() {
     )
   }
 
-  if (session) return <ChatListView />
+  if (user) return <ChatListView />
   return <AnonymousChatView />
 }
 
 // ─── Authenticated: Chat List ───
 
 function ChatListView() {
-  const { data: session } = useSession()
+  const { user, signOut } = useUser()
   const router = useRouter()
   const [conversations, setConversations] = useState<ConversationItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -122,7 +125,7 @@ function ChatListView() {
     ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
     : conversations
 
-  const userName = session?.user?.name || ''
+  const userName = user?.firstName || ''
 
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
@@ -142,7 +145,7 @@ function ChatListView() {
               </div>
             )}
             <button
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={() => signOut()}
               className="text-xs text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors px-2 py-1"
               title="Abmelden"
             >
@@ -192,10 +195,10 @@ function ChatListView() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-[#1A1A2E] text-sm sm:text-base mb-1">
-                  Nächste Suche in {getCooldownDays()} Tag{getCooldownDays() !== 1 ? 'en' : ''} verfügbar
+                  N&auml;chste Suche in {getCooldownDays()} Tag{getCooldownDays() !== 1 ? 'en' : ''} verf&uuml;gbar
                 </h3>
                 <p className="text-sm text-[#6B7280] leading-relaxed mb-3">
-                  Um dir die bestmöglichen Ergebnisse liefern zu können, kannst du alle 7 Tage eine neue Suche starten. Schließe deine aktuelle Suche ab (49&thinsp;&euro;), um sofort eine neue Suche zu starten.
+                  Um dir die bestm&ouml;glichen Ergebnisse liefern zu k&ouml;nnen, kannst du alle 7 Tage eine neue Suche starten. Schlie&szlig;e deine aktuelle Suche ab (49&thinsp;&euro;), um sofort eine neue Suche zu starten.
                 </p>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 bg-[#F5F0E8] rounded-full h-2">
@@ -317,7 +320,7 @@ function AnonymousChatView() {
   const initialGreeting = [{
     id: 'greeting',
     role: 'assistant' as const,
-    content: 'Hey! Schön, dass du hier bist. Ich bin dein persönlicher Job-Makler und finde Stellen, die du auf keinem Portal siehst. Erzähl mir \u2013 was würdest du gerne beruflich machen? Oder gibt es bestimmte Tätigkeiten, die dir besonders Spaß machen?',
+    content: 'Hey! Sch\u00f6n, dass du hier bist. Ich bin dein pers\u00f6nlicher Job-Makler und finde Stellen, die du auf keinem Portal siehst. Erz\u00e4hl mir \u2013 was w\u00fcrdest du gerne beruflich machen? Oder gibt es bestimmte T\u00e4tigkeiten, die dir besonders Spa\u00df machen?',
   }]
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     initialMessages: initialGreeting,
@@ -331,10 +334,14 @@ function AnonymousChatView() {
   const [regPostalCode, setRegPostalCode] = useState('')
   const [regName, setRegName] = useState('')
   const [regEmail, setRegEmail] = useState('')
-  const [regPassword, setRegPassword] = useState('')
-  const [regConfirm, setRegConfirm] = useState('')
   const [regError, setRegError] = useState('')
   const [regLoading, setRegLoading] = useState(false)
+
+  // OTP flow state
+  const [otpStep, setOtpStep] = useState<OtpStep>('email')
+  const [otpCode, setOtpCode] = useState<string[]>(['', '', '', '', '', ''])
+  const [otpResendTimer, setOtpResendTimer] = useState(0)
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   // Detect require_registration from tool results (no auto-popup)
   const requiresRegistration = messages.some(
@@ -374,69 +381,161 @@ function AnonymousChatView() {
     }
   }, [isLoading, showRegModal, requiresRegistration])
 
+  // OTP resend countdown timer
+  useEffect(() => {
+    if (otpResendTimer <= 0) return
+    const interval = setInterval(() => {
+      setOtpResendTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [otpResendTimer])
+
+  // Open modal with fresh state
+  const openRegModal = () => {
+    setOtpStep('email')
+    setOtpCode(['', '', '', '', '', ''])
+    setOtpResendTimer(0)
+    setRegError('')
+    setRegLoading(false)
+    setShowRegModal(true)
+  }
+
+  // OTP input handlers
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return
+    const newCode = [...otpCode]
+    newCode[index] = value.slice(-1)
+    setOtpCode(newCode)
+    if (value && index < 5) {
+      otpInputRefs.current[index + 1]?.focus()
+    }
+  }
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    const newCode = [...otpCode]
+    for (let i = 0; i < pasted.length; i++) {
+      newCode[i] = pasted[i]
+    }
+    setOtpCode(newCode)
+    const nextEmpty = newCode.findIndex(d => !d)
+    otpInputRefs.current[nextEmpty >= 0 ? nextEmpty : 5]?.focus()
+  }
+
+  const handleResendOtp = async () => {
+    if (otpResendTimer > 0) return
+    setRegError('')
+    setRegLoading(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOtp({ email: regEmail })
+      if (error) { setRegError(error.message); setRegLoading(false); return }
+      setOtpResendTimer(60)
+      setOtpCode(['', '', '', '', '', ''])
+      setRegLoading(false)
+    } catch {
+      setRegError('Netzwerkfehler. Bitte versuche es erneut.')
+      setRegLoading(false)
+    }
+  }
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setRegError('')
 
-    if (regName.trim().length < 2) { setRegError('Name muss mindestens 2 Zeichen haben'); return }
-    if (!regEmail.includes('@')) { setRegError('Ung\u00fcltige Email-Adresse'); return }
-    if (regPassword.length < 8) { setRegError('Passwort muss mindestens 8 Zeichen haben'); return }
-    if (regPassword !== regConfirm) { setRegError('Passw\u00f6rter stimmen nicht \u00fcberein'); return }
+    if (otpStep === 'email') {
+      // Validate name and email
+      if (regName.trim().length < 2) { setRegError('Name muss mindestens 2 Zeichen haben'); return }
+      if (!regEmail.includes('@')) { setRegError('Ung\u00fcltige Email-Adresse'); return }
 
-    setRegLoading(true)
-    try {
-      // 1. Register user + create search with results
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          first_name: regName.trim(),
-          email: regEmail,
-          password: regPassword,
-          job_title: regJobTitle,
-          postal_code: regPostalCode,
-        }),
-      })
-      const data = await res.json()
-      if (!data.success) { setRegError(data.error || 'Registrierung fehlgeschlagen'); setRegLoading(false); return }
+      setRegLoading(true)
+      try {
+        const supabase = createClient()
+        const { error } = await supabase.auth.signInWithOtp({ email: regEmail })
+        if (error) { setRegError(error.message); setRegLoading(false); return }
+        setOtpStep('otp')
+        setOtpResendTimer(60)
+        setRegLoading(false)
+      } catch {
+        setRegError('Netzwerkfehler. Bitte versuche es erneut.')
+        setRegLoading(false)
+      }
+    } else if (otpStep === 'otp') {
+      const token = otpCode.join('')
+      if (token.length !== 6) { setRegError('Bitte gib den 6-stelligen Code ein'); return }
 
-      // 2. Auto-login
-      const loginResult = await signIn('credentials', { email: regEmail, password: regPassword, redirect: false })
-      if (loginResult?.error) { setRegError('Konto erstellt, aber Anmeldung fehlgeschlagen. Bitte melde dich manuell an.'); setRegLoading(false); return }
+      setRegLoading(true)
+      try {
+        // Verify OTP -- this signs the user in via Supabase
+        const supabase = createClient()
+        const { error } = await supabase.auth.verifyOtp({ email: regEmail, token, type: 'email' })
+        if (error) { setRegError('Ung\u00fcltiger Code. Bitte versuche es erneut.'); setRegLoading(false); return }
 
-      // 3. Create conversation
-      const convRes = await fetch('/api/conversations', { method: 'POST' })
-      const convData = await convRes.json()
-      const convId = convData.conversation?.id
+        // OTP verified and user is now authenticated -- create profile + search
+        setOtpStep('creating')
 
-      if (convId) {
-        // 4. Save current messages to conversation
-        await fetch(`/api/conversations/${convId}/messages`, {
+        // Save name to profile + create search via API
+        const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages }),
+          body: JSON.stringify({
+            first_name: regName.trim(),
+            email: regEmail,
+            job_title: regJobTitle,
+            postal_code: regPostalCode,
+          }),
         })
+        const data = await res.json()
+        if (!data.success) { setRegError(data.error || 'Registrierung fehlgeschlagen'); setOtpStep('otp'); setRegLoading(false); return }
 
-        // 5. Set search_id and title on conversation
-        if (data.search?.search_id) {
-          await fetch(`/api/conversations/${convId}`, {
-            method: 'PUT',
+        // Create conversation
+        const convRes = await fetch('/api/conversations', { method: 'POST' })
+        const convData = await convRes.json()
+        const convId = convData.conversation?.id
+
+        if (convId) {
+          // Save current messages to conversation
+          await fetch(`/api/conversations/${convId}/messages`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              search_id: data.search.search_id,
-              title: regJobTitle || 'Jobsuche',
-            }),
+            body: JSON.stringify({ messages }),
           })
-        }
 
-        // 6. Redirect to conversation page with registered flag
-        window.location.href = `/chat/${convId}?registered=1`
-      } else {
-        window.location.href = '/chat'
+          // Set search_id and title on conversation
+          if (data.search?.search_id) {
+            await fetch(`/api/conversations/${convId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                search_id: data.search.search_id,
+                title: regJobTitle || 'Jobsuche',
+              }),
+            })
+          }
+
+          // Redirect to conversation page with registered flag
+          window.location.href = `/chat/${convId}?registered=1`
+        } else {
+          window.location.href = '/chat'
+        }
+      } catch {
+        setRegError('Netzwerkfehler. Bitte versuche es erneut.')
+        setOtpStep('otp')
+        setRegLoading(false)
       }
-    } catch {
-      setRegError('Netzwerkfehler. Bitte versuche es erneut.')
-      setRegLoading(false)
     }
   }
 
@@ -530,7 +629,7 @@ function AnonymousChatView() {
                     <div className="flex justify-start mt-2">
                       <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <button
-                          onClick={() => setShowRegModal(true)}
+                          onClick={openRegModal}
                           className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm shadow-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -603,91 +702,168 @@ function AnonymousChatView() {
         </div>
       </section>
 
-      {/* Registration Modal */}
+      {/* Registration Modal (OTP Flow) */}
       {showRegModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] overflow-y-auto overscroll-contain" onClick={(e) => { if (e.target === e.currentTarget) setShowRegModal(false) }}>
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] overflow-y-auto overscroll-contain"
+          onClick={(e) => { if (e.target === e.currentTarget && otpStep !== 'creating') setShowRegModal(false) }}
+        >
           <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 relative sm:my-4 sm:mx-4 max-h-[90vh] overflow-y-auto pb-safe">
-            <button onClick={() => setShowRegModal(false)} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-
-            <div className="text-center mb-5 sm:mb-6">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                <svg className="w-6 h-6 sm:w-7 sm:h-7 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold text-[#1A1A2E]">Ergebnisse freischalten</h2>
-              <p className="text-sm text-[#6B7280] mt-1">Erstelle ein kostenloses Konto um deine Suchergebnisse zu sehen.</p>
-            </div>
-
-            <form onSubmit={handleRegister} className="space-y-3 sm:space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#4A5568] mb-1.5">Vorname</label>
-                <input
-                  type="text"
-                  value={regName}
-                  onChange={(e) => setRegName(e.target.value)}
-                  autoComplete="given-name"
-                  inputMode="text"
-                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
-                  placeholder="Max"
-                  disabled={regLoading}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#4A5568] mb-1.5">Email</label>
-                <input
-                  type="email"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  autoComplete="email"
-                  inputMode="email"
-                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
-                  placeholder="max@beispiel.de"
-                  disabled={regLoading}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#4A5568] mb-1.5">Passwort</label>
-                <input
-                  type="password"
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
-                  placeholder="Mindestens 8 Zeichen"
-                  disabled={regLoading}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#4A5568] mb-1.5">Passwort best&auml;tigen</label>
-                <input
-                  type="password"
-                  value={regConfirm}
-                  onChange={(e) => setRegConfirm(e.target.value)}
-                  autoComplete="new-password"
-                  className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
-                  placeholder="Passwort wiederholen"
-                  disabled={regLoading}
-                />
-              </div>
-
-              {regError && (
-                <div className="bg-red-50 text-red-600 border border-red-200 text-sm p-3 rounded-xl">{regError}</div>
-              )}
-
-              <button
-                type="submit"
-                disabled={regLoading}
-                className="w-full py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-[#1A1A2E] font-semibold rounded-xl transition-colors"
-              >
-                {regLoading ? 'Wird erstellt...' : 'Kostenloses Konto erstellen'}
+            {/* Close button (hidden during creating step) */}
+            {otpStep !== 'creating' && (
+              <button onClick={() => setShowRegModal(false)} className="absolute top-3 right-3 sm:top-4 sm:right-4 text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
+            )}
 
-              <p className="text-xs text-center text-[#9CA3AF]">
-                Bereits ein Konto?{' '}
-                <Link href="/login" className="font-semibold text-[#F5B731] hover:text-[#E8930C]">Anmelden</Link>
-              </p>
-            </form>
+            {/* Step: Email (name + email) */}
+            {otpStep === 'email' && (
+              <>
+                <div className="text-center mb-5 sm:mb-6">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#1A1A2E]">Ergebnisse freischalten</h2>
+                  <p className="text-sm text-[#6B7280] mt-1">Erstelle ein kostenloses Konto um deine Suchergebnisse zu sehen.</p>
+                </div>
+
+                <form onSubmit={handleRegister} className="space-y-3 sm:space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1.5">Vorname</label>
+                    <input
+                      type="text"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      autoComplete="given-name"
+                      inputMode="text"
+                      className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
+                      placeholder="Max"
+                      disabled={regLoading}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#4A5568] mb-1.5">Email</label>
+                    <input
+                      type="email"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      autoComplete="email"
+                      inputMode="email"
+                      className="w-full px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30"
+                      placeholder="max@beispiel.de"
+                      disabled={regLoading}
+                    />
+                  </div>
+
+                  {regError && (
+                    <div className="bg-red-50 text-red-600 border border-red-200 text-sm p-3 rounded-xl">{regError}</div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={regLoading}
+                    className="w-full py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-[#1A1A2E] font-semibold rounded-xl transition-colors"
+                  >
+                    {regLoading ? 'Code wird gesendet...' : 'Weiter'}
+                  </button>
+
+                  <p className="text-xs text-center text-[#9CA3AF]">
+                    Bereits ein Konto?{' '}
+                    <Link href="/login" className="font-semibold text-[#F5B731] hover:text-[#E8930C]">Anmelden</Link>
+                  </p>
+                </form>
+              </>
+            )}
+
+            {/* Step: OTP verification */}
+            {otpStep === 'otp' && (
+              <>
+                <div className="text-center mb-5 sm:mb-6">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#1A1A2E]">Code eingeben</h2>
+                  <p className="text-sm text-[#6B7280] mt-1">
+                    Wir haben einen 6-stelligen Code an <span className="font-medium text-[#1A1A2E]">{regEmail}</span> gesendet.
+                  </p>
+                </div>
+
+                <form onSubmit={handleRegister} className="space-y-4">
+                  {/* OTP input boxes */}
+                  <div className="flex justify-center gap-2 sm:gap-3">
+                    {otpCode.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => { otpInputRefs.current[index] = el }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        onPaste={index === 0 ? handleOtpPaste : undefined}
+                        className="w-11 h-13 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        disabled={regLoading}
+                        autoFocus={index === 0}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Resend timer / link */}
+                  <div className="text-center">
+                    {otpResendTimer > 0 ? (
+                      <p className="text-xs text-[#9CA3AF]">
+                        Code erneut senden in <span className="font-medium text-[#4A5568]">{otpResendTimer}s</span>
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={regLoading}
+                        className="text-xs font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors disabled:text-[#9CA3AF]"
+                      >
+                        Code erneut senden
+                      </button>
+                    )}
+                  </div>
+
+                  {regError && (
+                    <div className="bg-red-50 text-red-600 border border-red-200 text-sm p-3 rounded-xl">{regError}</div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={regLoading || otpCode.join('').length !== 6}
+                    className="w-full py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-[#1A1A2E] font-semibold rounded-xl transition-colors"
+                  >
+                    {regLoading ? 'Wird gepr\u00fcft...' : 'Best\u00e4tigen'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setOtpStep('email'); setRegError(''); setOtpCode(['', '', '', '', '', '']) }}
+                    className="w-full text-xs text-center text-[#9CA3AF] hover:text-[#4A5568] transition-colors py-1"
+                  >
+                    Andere Email-Adresse verwenden
+                  </button>
+                </form>
+              </>
+            )}
+
+            {/* Step: Creating account (loading) */}
+            {otpStep === 'creating' && (
+              <div className="py-8 sm:py-12 text-center">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#F5B731]/10 rounded-full flex items-center justify-center mx-auto mb-5">
+                  <div className="flex space-x-1.5">
+                    <div className="w-2 h-2 bg-[#F5B731] rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                    <div className="w-2 h-2 bg-[#F5B731] rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                  </div>
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-[#1A1A2E] mb-2">Dein Konto wird erstellt</h2>
+                <p className="text-sm text-[#6B7280]">Einen Moment bitte...</p>
+              </div>
+            )}
           </div>
         </div>
       )}

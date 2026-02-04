@@ -2,7 +2,7 @@
 
 import { useChat, type Message } from 'ai/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useUser } from '@/lib/hooks/useUser'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { jsPDF } from 'jspdf'
@@ -209,7 +209,7 @@ function PaymentModal({ isOpen, searchId, onClose, onSuccess }: { isOpen: boolea
 export default function ChatDetailPage() {
   const params = useParams()
   const conversationId = params.id as string
-  const { data: session } = useSession()
+  const { user, signOut } = useUser()
 
   const [conversationLoaded, setConversationLoaded] = useState(false)
   const [conversationStatus, setConversationStatus] = useState<'active' | 'completed'>('active')
@@ -320,15 +320,15 @@ export default function ChatDetailPage() {
   }
 
   if (conversationStatus === 'completed') {
-    return <CompletedChatView messages={storedMessages} results={storedResults} userName={session?.user?.name || ''} />
+    return <CompletedChatView messages={storedMessages} results={storedResults} userName={user?.firstName || ''} signOut={signOut} />
   }
 
-  return <ActiveChatView conversationId={conversationId} initialMessages={storedMessages} storedResults={storedResults} userName={session?.user?.name || ''} onComplete={() => setConversationStatus('completed')} searchId={conversationSearchId} searchPaid={searchPaid} />
+  return <ActiveChatView conversationId={conversationId} initialMessages={storedMessages} storedResults={storedResults} userName={user?.firstName || ''} onComplete={() => setConversationStatus('completed')} searchId={conversationSearchId} searchPaid={searchPaid} signOut={signOut} />
 }
 
 // ─── Completed Chat View (Read-Only) ───
 
-function CompletedChatView({ messages, results, userName }: { messages: Message[]; results: PdfResult[]; userName: string }) {
+function CompletedChatView({ messages, results, userName, signOut }: { messages: Message[]; results: PdfResult[]; userName: string; signOut: () => Promise<void> }) {
   const jobTitle = results[0]?.job_title || ''
 
   const handleDownloadPdf = () => {
@@ -357,7 +357,7 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
                 {userName.charAt(0).toUpperCase()}
               </div>
             )}
-            <button onClick={() => signOut({ callbackUrl: '/' })} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors" title="Abmelden">
+            <button onClick={() => signOut()} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors" title="Abmelden">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
             </button>
           </div>
@@ -435,7 +435,7 @@ function CompletedChatView({ messages, results, userName }: { messages: Message[
 
 // ─── Active Chat View ───
 
-function ActiveChatView({ conversationId, initialMessages, storedResults, userName, onComplete, searchId, searchPaid }: {
+function ActiveChatView({ conversationId, initialMessages, storedResults, userName, onComplete, searchId, searchPaid, signOut }: {
   conversationId: string
   initialMessages: Message[]
   storedResults: PdfResult[]
@@ -443,6 +443,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
   onComplete: () => void
   searchId: string | null
   searchPaid: boolean
+  signOut: () => Promise<void>
 }) {
   const welcomeMsg: Message = {
     id: 'welcome',
@@ -713,7 +714,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                 {userName.charAt(0).toUpperCase()}
               </div>
             )}
-            <button onClick={() => signOut({ callbackUrl: '/' })} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors" title="Abmelden">
+            <button onClick={() => signOut()} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors" title="Abmelden">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
             </button>
           </div>

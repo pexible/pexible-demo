@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getSearches, saveSearches, getResults, saveResults, type Result } from '@/lib/storage'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { nanoid } from 'nanoid'
 
 export async function POST(req: NextRequest) {
@@ -21,37 +21,41 @@ export async function POST(req: NextRequest) {
       description: string
     }>
 
+    const admin = createAdminClient()
+
     // Validate search exists
-    const searchesData = await getSearches()
-    const searchIndex = searchesData.searches.findIndex(s => s.id === searchId)
-    
-    if (searchIndex === -1) {
+    const { data: search, error: searchError } = await admin
+      .from('searches')
+      .select('id')
+      .eq('id', searchId)
+      .single()
+
+    if (searchError || !search) {
       return Response.json({ error: 'Search not found' }, { status: 404 })
     }
 
     // Remove any existing results for this search before adding new ones
-    const resultsData = await getResults()
-    resultsData.results = resultsData.results.filter(r => r.search_id !== searchId)
+    await admin.from('results').delete().eq('search_id', searchId)
 
-    uploadedResults.forEach((result, index) => {
-      const newResult: Result = {
-        id: nanoid(),
-        search_id: searchId,
-        company_name: result.company_name,
-        job_title: result.job_title,
-        job_url: result.job_url,
-        description: result.description,
-        rank: index + 1
-      }
-      resultsData.results.push(newResult)
-    })
+    // Build new result rows
+    const newResults = uploadedResults.map((result, index) => ({
+      id: nanoid(),
+      search_id: searchId,
+      company_name: result.company_name,
+      job_title: result.job_title,
+      job_url: result.job_url,
+      description: result.description,
+      rank: index + 1
+    }))
 
-    await saveResults(resultsData)
+    // Insert new results
+    await admin.from('results').insert(newResults)
 
     // Update search status
-    searchesData.searches[searchIndex].status = 'completed'
-    searchesData.searches[searchIndex].total_results = uploadedResults.length
-    await saveSearches(searchesData)
+    await admin
+      .from('searches')
+      .update({ status: 'completed', total_results: newResults.length })
+      .eq('id', searchId)
 
     return Response.json({
       success: true,

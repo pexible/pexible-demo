@@ -2,17 +2,23 @@ import { openai } from '@ai-sdk/openai'
 import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { getSearches, saveSearches, getResults, saveResults, getConversations, saveConversations, type Search } from '@/lib/storage'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { generateDemoResults } from '@/lib/demo-data'
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user ? (session.user as Record<string, unknown>).id as string : null
-  const userName = session?.user?.name || null
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const userId = user?.id || null
+
+  let userName: string | null = null
+  if (user) {
+    const admin = createAdminClient()
+    const { data: profile } = await admin.from('profiles').select('first_name').eq('id', user.id).single()
+    userName = profile?.first_name || null
+  }
 
   const body = await req.json()
   const { messages, conversationId } = body
@@ -28,8 +34,8 @@ export async function POST(req: Request) {
   let conversationSearchId: string | null = null
   if (conversationId && userId) {
     try {
-      const convData = await getConversations()
-      const conv = convData.conversations.find(c => c.id === conversationId && c.user_id === userId)
+      const admin = createAdminClient()
+      const { data: conv } = await admin.from('conversations').select('search_id').eq('id', conversationId).eq('user_id', userId).single()
       if (conv?.search_id) conversationSearchId = conv.search_id
     } catch { /* ignore */ }
   }
@@ -175,10 +181,11 @@ REGELN:
           }
 
           // Authenticated user: create search and return results
+          const admin = createAdminClient()
           const searchId = nanoid()
           const demoResults = generateDemoResults(searchId, job_title, postal_code)
 
-          const search: Search = {
+          const search = {
             id: searchId,
             user_id: userId,
             job_title,
@@ -189,24 +196,16 @@ REGELN:
             created_at: new Date().toISOString()
           }
 
-          const searchesData = await getSearches()
-          searchesData.searches.push(search)
-          await saveSearches(searchesData)
-
-          const resultsData = await getResults()
-          resultsData.results.push(...demoResults)
-          await saveResults(resultsData)
+          await admin.from('searches').insert(search)
+          await admin.from('results').insert(demoResults)
 
           // Update conversation title and search_id
           if (conversationId) {
-            const convData = await getConversations()
-            const conv = convData.conversations.find(c => c.id === conversationId && c.user_id === userId)
-            if (conv) {
-              conv.search_id = searchId
-              conv.title = job_title
-              conv.updated_at = new Date().toISOString()
-              await saveConversations(convData)
-            }
+            await admin.from('conversations').update({
+              search_id: searchId,
+              title: job_title,
+              updated_at: new Date().toISOString()
+            }).eq('id', conversationId)
           }
 
           return {
@@ -236,17 +235,16 @@ REGELN:
         }),
         execute: async ({ search_id }) => {
           try {
-            const searchesData = await getSearches()
-            const search = searchesData.searches.find(s => s.id === search_id)
+            const admin = createAdminClient()
+            const { data: search } = await admin.from('searches').select().eq('id', search_id).single()
 
             if (!search) {
               return { found: false, error: 'Suche nicht gefunden' }
             }
 
-            const resultsData = await getResults()
-            const searchResults = resultsData.results.filter(r => r.search_id === search_id)
+            const { data: searchResults } = await admin.from('results').select().eq('search_id', search_id).order('rank')
 
-            if (searchResults.length === 0) {
+            if (!searchResults || searchResults.length === 0) {
               return { found: false, status: search.status, message: 'Ergebnisse werden noch verarbeitet.' }
             }
 
@@ -255,7 +253,7 @@ REGELN:
                 found: true,
                 paid: true,
                 total_results: searchResults.length,
-                all_results: searchResults.map(r => ({
+                all_results: searchResults.map((r: { company_name: string; job_title: string; job_url: string; description: string }) => ({
                   company: r.company_name,
                   title: r.job_title,
                   url: r.job_url,
@@ -268,7 +266,7 @@ REGELN:
               found: true,
               paid: false,
               total_results: searchResults.length,
-              freemium_results: searchResults.slice(0, 3).map(r => ({
+              freemium_results: searchResults.slice(0, 3).map((r: { company_name: string; job_title: string; job_url: string }) => ({
                 company: r.company_name,
                 title: r.job_title,
                 url: r.job_url

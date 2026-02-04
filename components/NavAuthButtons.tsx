@@ -1,13 +1,13 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
+import { useUser } from '@/lib/hooks/useUser'
 
 export default function NavAuthButtons() {
-  const { data: session, status } = useSession()
+  const { user, isLoading, signOut } = useUser()
 
   // Show default (non-auth) nav while loading to prevent flash
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-[#4A5568] px-4 py-2 invisible">Anmelden</span>
@@ -16,8 +16,8 @@ export default function NavAuthButtons() {
     )
   }
 
-  if (session) {
-    const userName = session.user?.name || ''
+  if (user) {
+    const userName = user.firstName || ''
     return (
       <div className="flex items-center gap-3">
         <Link
@@ -32,7 +32,7 @@ export default function NavAuthButtons() {
           </div>
         )}
         <button
-          onClick={() => signOut({ callbackUrl: '/' })}
+          onClick={() => signOut()}
           className="text-xs text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors px-2 py-1"
           title="Abmelden"
         >
@@ -61,12 +61,12 @@ export default function NavAuthButtons() {
 }
 
 export function NavAuthButtonsMobile({ onNavigate }: { onNavigate?: () => void }) {
-  const { data: session, status } = useSession()
+  const { user, isLoading, signOut } = useUser()
 
-  if (status === 'loading') return null
+  if (isLoading) return null
 
-  if (session) {
-    const userName = session.user?.name || ''
+  if (user) {
+    const userName = user.firstName || ''
     return (
       <div className="pt-3 border-t border-[#E8E0D4]/60 space-y-2">
         <Link href="/chat" onClick={onNavigate} className="flex items-center gap-3 text-sm font-medium text-[#1A1A2E] px-2 py-2.5">
@@ -78,7 +78,7 @@ export function NavAuthButtonsMobile({ onNavigate }: { onNavigate?: () => void }
           Meine Chats
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: '/' })}
+          onClick={() => signOut()}
           className="block w-full text-center text-sm text-[#9CA3AF] hover:text-[#1A1A2E] px-5 py-2.5 transition-colors"
         >
           Abmelden

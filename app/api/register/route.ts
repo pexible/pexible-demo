@@ -1,68 +1,49 @@
 import { NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
-import bcrypt from 'bcryptjs'
-import { getUsers, saveUsers, getSearches, saveSearches, getResults, saveResults, type User, type Search } from '@/lib/storage'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { generateDemoResults } from '@/lib/demo-data'
 
+// Registration endpoint for anonymous chat flow.
+// The user is already authenticated via Supabase OTP at this point.
+// This route creates/updates their profile and optionally creates search + demo results.
 export async function POST(req: Request) {
   try {
-    const { email, password, first_name, job_title, postal_code } = await req.json()
+    const { first_name, job_title, postal_code } = await req.json()
 
-    if (!email || !password || !first_name) {
+    // Get authenticated user
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Alle Felder sind erforderlich' },
-        { status: 400 }
+        { success: false, error: 'Nicht autorisiert. Bitte melde dich zuerst an.' },
+        { status: 401 }
       )
     }
 
-    if (first_name.trim().length < 2) {
+    if (!first_name || first_name.trim().length < 2) {
       return NextResponse.json(
         { success: false, error: 'Name muss mindestens 2 Zeichen haben' },
         { status: 400 }
       )
     }
 
-    if (!email.includes('@')) {
-      return NextResponse.json(
-        { success: false, error: 'Ungültige Email-Adresse' },
-        { status: 400 }
-      )
-    }
+    const admin = createAdminClient()
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { success: false, error: 'Passwort muss mindestens 8 Zeichen haben' },
-        { status: 400 }
-      )
-    }
+    // Update profile with first_name
+    await admin
+      .from('profiles')
+      .update({ first_name: first_name.trim() })
+      .eq('id', user.id)
 
-    const usersData = await getUsers()
-
-    if (usersData.users.find(u => u.email === email)) {
-      return NextResponse.json(
-        { success: false, error: 'Email bereits registriert' },
-        { status: 400 }
-      )
-    }
-
-    const user: User = {
-      id: nanoid(),
-      email,
-      password_hash: await bcrypt.hash(password, 10),
-      first_name: first_name.trim(),
-      created_at: new Date().toISOString()
-    }
-
-    usersData.users.push(user)
-    await saveUsers(usersData)
-
-    // Optionally create search + results (from anonymous chat flow)
+    // Create search + results if job_title and postal_code provided
     let searchResult = null
     if (job_title && postal_code && /^\d{5}$/.test(postal_code)) {
       const searchId = nanoid()
       const demoResults = generateDemoResults(searchId, job_title, postal_code)
 
-      const search: Search = {
+      const search = {
         id: searchId,
         user_id: user.id,
         job_title,
@@ -70,16 +51,11 @@ export async function POST(req: Request) {
         status: 'completed',
         paid: false,
         total_results: demoResults.length,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       }
 
-      const searchesData = await getSearches()
-      searchesData.searches.push(search)
-      await saveSearches(searchesData)
-
-      const resultsData = await getResults()
-      resultsData.results.push(...demoResults)
-      await saveResults(resultsData)
+      await admin.from('searches').insert(search)
+      await admin.from('results').insert(demoResults)
 
       searchResult = {
         search_id: searchId,
@@ -90,7 +66,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       user_id: user.id,
-      first_name: user.first_name,
+      first_name: first_name.trim(),
       search: searchResult,
     })
   } catch (error) {

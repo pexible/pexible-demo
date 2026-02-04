@@ -1,13 +1,27 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { nanoid } from 'nanoid'
-import { getConversations, saveConversations, type Conversation } from '@/lib/storage'
 
 const COOLDOWN_DAYS = 7
 
-function getCooldownStatus(userConversations: Conversation[]): { canCreateNew: boolean; cooldownUntil: string | null } {
-  if (userConversations.length === 0) return { canCreateNew: true, cooldownUntil: null }
+async function getCooldownStatus(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  userConversations: Array<{ status: string; created_at: string }>
+): Promise<{ canCreateNew: boolean; cooldownUntil: string | null }> {
+  // Check for unpaid searches
+  const { data: unpaidSearches } = await admin
+    .from('searches')
+    .select('id, paid')
+    .eq('user_id', userId)
+    .eq('paid', false)
+
+  const hasUnpaidSearches = unpaidSearches && unpaidSearches.length > 0
+
+  if (userConversations.length === 0) {
+    return { canCreateNew: !hasUnpaidSearches, cooldownUntil: null }
+  }
 
   // Sort by created_at descending to find the most recent conversation
   const sorted = [...userConversations].sort((a, b) =>
@@ -15,8 +29,10 @@ function getCooldownStatus(userConversations: Conversation[]): { canCreateNew: b
   )
   const mostRecent = sorted[0]
 
-  // If the most recent conversation is completed (paid), allow new chat immediately
-  if (mostRecent.status === 'completed') return { canCreateNew: true, cooldownUntil: null }
+  // If the most recent conversation is completed (paid), allow unless unpaid searches exist
+  if (mostRecent.status === 'completed') {
+    return { canCreateNew: !hasUnpaidSearches, cooldownUntil: null }
+  }
 
   // If the most recent conversation is active, check cooldown
   const createdAt = new Date(mostRecent.created_at)
@@ -27,23 +43,36 @@ function getCooldownStatus(userConversations: Conversation[]): { canCreateNew: b
     return { canCreateNew: false, cooldownUntil: cooldownEnd.toISOString() }
   }
 
+  // Cooldown expired but unpaid searches still block
+  if (hasUnpaidSearches) {
+    return { canCreateNew: false, cooldownUntil: null }
+  }
+
   // Cooldown expired, allow new chat
   return { canCreateNew: true, cooldownUntil: null }
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   }
 
-  const userId = (session.user as Record<string, unknown>).id as string
-  const data = await getConversations()
-  const userConversations = data.conversations
-    .filter(c => c.user_id === userId)
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+  const admin = createAdminClient()
 
-  const cooldown = getCooldownStatus(userConversations)
+  const { data: conversations, error } = await admin
+    .from('conversations')
+    .select('id, title, status, search_id, messages, created_at, updated_at')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    return NextResponse.json({ error: 'Fehler beim Laden der Konversationen' }, { status: 500 })
+  }
+
+  const userConversations = conversations || []
+  const cooldown = await getCooldownStatus(admin, user.id, userConversations)
 
   return NextResponse.json({
     conversations: userConversations.map(c => ({
@@ -51,7 +80,7 @@ export async function GET() {
       title: c.title,
       status: c.status,
       search_id: c.search_id,
-      message_count: c.messages.length,
+      message_count: Array.isArray(c.messages) ? c.messages.length : 0,
       created_at: c.created_at,
       updated_at: c.updated_at,
     })),
@@ -61,17 +90,25 @@ export async function GET() {
 }
 
 export async function POST() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   }
 
-  const userId = (session.user as Record<string, unknown>).id as string
-  const data = await getConversations()
-  const userConversations = data.conversations.filter(c => c.user_id === userId)
+  const admin = createAdminClient()
+
+  // Fetch user conversations for cooldown check
+  const { data: conversations } = await admin
+    .from('conversations')
+    .select('id, status, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const userConversations = conversations || []
 
   // Check 7-day cooldown
-  const cooldown = getCooldownStatus(userConversations)
+  const cooldown = await getCooldownStatus(admin, user.id, userConversations)
   if (!cooldown.canCreateNew) {
     return NextResponse.json({
       error: 'cooldown_active',
@@ -82,18 +119,29 @@ export async function POST() {
 
   const now = new Date().toISOString()
 
-  const conversation: Conversation = {
-    id: nanoid(),
-    user_id: userId,
-    title: 'Neue Suche',
-    status: 'active',
-    messages: [],
-    created_at: now,
-    updated_at: now,
+  const { data: conversation, error } = await admin
+    .from('conversations')
+    .insert({
+      id: nanoid(),
+      user_id: user.id,
+      title: 'Neue Suche',
+      status: 'active',
+      messages: [],
+      created_at: now,
+      updated_at: now,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: 'Fehler beim Erstellen der Konversation' }, { status: 500 })
   }
 
-  data.conversations.push(conversation)
-  await saveConversations(data)
-
-  return NextResponse.json({ conversation: { id: conversation.id, title: conversation.title, status: conversation.status } })
+  return NextResponse.json({
+    conversation: {
+      id: conversation.id,
+      title: conversation.title,
+      status: conversation.status,
+    },
+  })
 }
