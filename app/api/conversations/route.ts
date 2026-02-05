@@ -19,8 +19,10 @@ async function getCooldownStatus(
 
   const hasUnpaidSearches = unpaidSearches && unpaidSearches.length > 0
 
+  // If user has no conversations, allow creating first one
+  // (even if there's an orphan unpaid search from failed registration)
   if (userConversations.length === 0) {
-    return { canCreateNew: !hasUnpaidSearches, cooldownUntil: null }
+    return { canCreateNew: true, cooldownUntil: null }
   }
 
   // Sort by created_at descending to find the most recent conversation
