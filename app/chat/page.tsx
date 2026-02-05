@@ -95,16 +95,29 @@ function ChatListView() {
     try {
       const res = await fetch('/api/conversations', { method: 'POST' })
       const data = await res.json()
+      console.log('Create conversation response:', data)
       if (data.error === 'cooldown_active') {
         setCanCreateNew(false)
         setCooldownUntil(data.cooldownUntil)
         setIsCreating(false)
         return
       }
+      if (data.error) {
+        console.error('Conversation creation error:', data.error)
+        alert(`Fehler: ${data.error}`)
+        setIsCreating(false)
+        return
+      }
       if (data.conversation?.id) {
         router.push(`/chat/${data.conversation.id}`)
+      } else {
+        console.error('No conversation ID in response:', data)
+        alert('Fehler beim Erstellen des Chats')
+        setIsCreating(false)
       }
-    } catch {
+    } catch (err) {
+      console.error('Network error creating chat:', err)
+      alert('Netzwerkfehler. Bitte versuche es erneut.')
       setIsCreating(false)
     }
   }
