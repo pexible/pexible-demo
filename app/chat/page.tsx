@@ -465,7 +465,12 @@ function AnonymousChatView() {
       try {
         const supabase = createClient()
         const { error } = await supabase.auth.signInWithOtp({ email: regEmail })
-        if (error) { setRegError(error.message); setRegLoading(false); return }
+        if (error) {
+          console.error('OTP Error:', error)
+          setRegError(error.message || JSON.stringify(error) || 'Email konnte nicht gesendet werden')
+          setRegLoading(false)
+          return
+        }
         setOtpStep('otp')
         setOtpResendTimer(60)
         setRegLoading(false)
