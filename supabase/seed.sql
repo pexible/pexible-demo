@@ -2,13 +2,20 @@
 -- pexible Demo — Seed Data for 3 Test Users
 -- =============================================
 -- Run this AFTER schema.sql in the Supabase SQL Editor.
--- This creates 3 test users with pre-populated searches and results.
---
--- Test users authenticate via the normal OTP flow OR
--- via password (set below) for convenience during testing.
---
--- IMPORTANT: These users are created directly in auth.users.
--- The handle_new_user trigger automatically creates their profiles.
+
+-- ─── CLEANUP: Remove existing test users first ───
+
+DELETE FROM auth.identities WHERE user_id IN (
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222',
+  '33333333-3333-3333-3333-333333333333'
+);
+
+DELETE FROM auth.users WHERE id IN (
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222',
+  '33333333-3333-3333-3333-333333333333'
+);
 
 -- ─── Test User 1: Sarah (paid, completed search) ───
 
@@ -25,12 +32,11 @@ INSERT INTO auth.users (
   '{"first_name": "Sarah"}'::jsonb,
   'authenticated', 'authenticated', now(), now(),
   '', '', '', ''
-) ON CONFLICT (id) DO NOTHING;
+);
 
--- Ensure profile exists and mark as test user
-INSERT INTO public.profiles (id, first_name, is_test_user)
-VALUES ('11111111-1111-1111-1111-111111111111', 'Sarah', true)
-ON CONFLICT (id) DO UPDATE SET first_name = 'Sarah', is_test_user = true;
+-- Profile (trigger creates it, but update to mark as test user)
+UPDATE public.profiles SET first_name = 'Sarah', is_test_user = true
+WHERE id = '11111111-1111-1111-1111-111111111111';
 
 -- Sarah's search (paid)
 INSERT INTO public.searches (id, user_id, job_title, postal_code, status, paid, total_results, created_at)
@@ -78,11 +84,10 @@ INSERT INTO auth.users (
   '{"first_name": "Markus"}'::jsonb,
   'authenticated', 'authenticated', now(), now(),
   '', '', '', ''
-) ON CONFLICT (id) DO NOTHING;
+);
 
-INSERT INTO public.profiles (id, first_name, is_test_user)
-VALUES ('22222222-2222-2222-2222-222222222222', 'Markus', true)
-ON CONFLICT (id) DO UPDATE SET first_name = 'Markus', is_test_user = true;
+UPDATE public.profiles SET first_name = 'Markus', is_test_user = true
+WHERE id = '22222222-2222-2222-2222-222222222222';
 
 -- Markus's search (not paid)
 INSERT INTO public.searches (id, user_id, job_title, postal_code, status, paid, total_results, created_at)
@@ -131,11 +136,10 @@ INSERT INTO auth.users (
   '{"first_name": "Julia"}'::jsonb,
   'authenticated', 'authenticated', now(), now(),
   '', '', '', ''
-) ON CONFLICT (id) DO NOTHING;
+);
 
-INSERT INTO public.profiles (id, first_name, is_test_user)
-VALUES ('33333333-3333-3333-3333-333333333333', 'Julia', true)
-ON CONFLICT (id) DO UPDATE SET first_name = 'Julia', is_test_user = true;
+UPDATE public.profiles SET first_name = 'Julia', is_test_user = true
+WHERE id = '33333333-3333-3333-3333-333333333333';
 
 -- Julia's first search (paid, completed)
 INSERT INTO public.searches (id, user_id, job_title, postal_code, status, paid, total_results, created_at)
@@ -186,5 +190,4 @@ INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, 
 VALUES
   ('11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', '{"sub":"11111111-1111-1111-1111-111111111111","email":"test-sarah@pexible.de"}'::jsonb, 'email', now(), now(), now()),
   ('22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', '{"sub":"22222222-2222-2222-2222-222222222222","email":"test-markus@pexible.de"}'::jsonb, 'email', now(), now(), now()),
-  ('33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', '{"sub":"33333333-3333-3333-3333-333333333333","email":"test-julia@pexible.de"}'::jsonb, 'email', now(), now(), now())
-ON CONFLICT (provider_id, provider) DO NOTHING;
+  ('33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', '{"sub":"33333333-3333-3333-3333-333333333333","email":"test-julia@pexible.de"}'::jsonb, 'email', now(), now(), now());
