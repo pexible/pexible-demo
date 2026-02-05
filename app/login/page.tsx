@@ -51,7 +51,8 @@ export default function LoginPage() {
     })
 
     if (error) {
-      setError('Fehler beim Senden des Codes. Bitte versuche es erneut.')
+      console.error('OTP Error:', error)
+      setError(error.message || JSON.stringify(error) || 'Fehler beim Senden des Codes')
       setIsLoading(false)
       return
     }
@@ -97,7 +98,7 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token: code,
-      type: 'email',
+      type: 'magiclink',
     })
 
     if (error) {
