@@ -249,6 +249,11 @@ export default function ChatDetailPage() {
         const res = await fetch(`/api/conversations/${conversationId}`)
         if (!res.ok) throw new Error('Not found')
         const data = await res.json()
+        console.log('Loaded conversation:', {
+          status: data.conversation.status,
+          messagesCount: data.conversation.messages?.length,
+          messages: data.conversation.messages
+        })
         setConversationStatus(paymentConfirmed ? 'completed' : data.conversation.status)
         if (data.conversation.search_id) setConversationSearchId(data.conversation.search_id)
         if (data.searchPaid || paymentConfirmed) setSearchPaid(true)
@@ -329,6 +334,7 @@ export default function ChatDetailPage() {
 // ─── Completed Chat View (Read-Only) ───
 
 function CompletedChatView({ messages, results, userName, signOut }: { messages: Message[]; results: PdfResult[]; userName: string; signOut: () => Promise<void> }) {
+  console.log('CompletedChatView received:', { messagesCount: messages.length, messages, results })
   const jobTitle = results[0]?.job_title || ''
 
   const handleDownloadPdf = () => {
