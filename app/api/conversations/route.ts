@@ -136,7 +136,8 @@ export async function POST() {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: 'Fehler beim Erstellen der Konversation' }, { status: 500 })
+    console.error('Supabase insert error:', error)
+    return NextResponse.json({ error: `Fehler beim Erstellen der Konversation: ${error.message}` }, { status: 500 })
   }
 
   return NextResponse.json({
