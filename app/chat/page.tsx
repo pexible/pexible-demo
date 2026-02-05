@@ -486,8 +486,8 @@ function AnonymousChatView() {
       try {
         // Verify OTP -- this signs the user in via Supabase
         const supabase = createClient()
-        const { error } = await supabase.auth.verifyOtp({ email: regEmail, token, type: 'magiclink' })
-        if (error) { setRegError('Ung\u00fcltiger Code. Bitte versuche es erneut.'); setRegLoading(false); return }
+        const { error } = await supabase.auth.verifyOtp({ email: regEmail, token, type: 'signup' })
+        if (error) { console.error('Verify OTP error:', error); setRegError(error.message || 'Ungültiger Code'); setRegLoading(false); return }
 
         // OTP verified and user is now authenticated -- create profile + search
         setOtpStep('creating')
