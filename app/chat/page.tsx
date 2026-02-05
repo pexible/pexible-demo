@@ -489,6 +489,18 @@ function AnonymousChatView() {
         const { error } = await supabase.auth.verifyOtp({ email: regEmail, token, type: 'email' })
         if (error) { console.error('Verify OTP error:', error); setRegError(error.message || 'Ungültiger Code'); setRegLoading(false); return }
 
+        // Ensure session is synced - small delay for cookies to propagate
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // Verify session is active
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          console.error('Session not found after OTP verification')
+          setRegError('Sitzungsfehler. Bitte lade die Seite neu und versuche es erneut.')
+          setRegLoading(false)
+          return
+        }
+
         // OTP verified and user is now authenticated -- create profile + search
         setOtpStep('creating')
 
@@ -504,20 +516,23 @@ function AnonymousChatView() {
           }),
         })
         const data = await res.json()
+        console.log('Register response:', data)
         if (!data.success) { setRegError(data.error || 'Registrierung fehlgeschlagen'); setOtpStep('otp'); setRegLoading(false); return }
 
         // Create conversation
         const convRes = await fetch('/api/conversations', { method: 'POST' })
         const convData = await convRes.json()
+        console.log('Conversation response:', convData)
         const convId = convData.conversation?.id
 
         if (convId) {
           // Save current messages to conversation
-          await fetch(`/api/conversations/${convId}/messages`, {
+          const msgRes = await fetch(`/api/conversations/${convId}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ messages }),
           })
+          console.log('Messages saved:', await msgRes.json())
 
           // Set search_id and title on conversation
           if (data.search?.search_id) {
@@ -534,9 +549,11 @@ function AnonymousChatView() {
           // Redirect to conversation page with registered flag
           window.location.href = `/chat/${convId}?registered=1`
         } else {
+          console.error('No conversation ID returned:', convData)
           window.location.href = '/chat'
         }
-      } catch {
+      } catch (err) {
+        console.error('Registration flow error:', err)
         setRegError('Netzwerkfehler. Bitte versuche es erneut.')
         setOtpStep('otp')
         setRegLoading(false)
