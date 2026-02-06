@@ -110,7 +110,11 @@ function generateResultsPdf(results: PdfResult[], jobTitle: string, isComplete: 
   doc.setFontSize(8)
   doc.setTextColor(160, 160, 160)
   doc.text('Erstellt von pexible.de \u2022 Dein Job-Makler', pageWidth / 2, y, { align: 'center' })
-  doc.save(`pexible-ergebnisse-${isComplete ? 'komplett' : 'vorschau'}.pdf`)
+
+  // Open in new tab instead of downloading in same tab
+  const pdfBlob = doc.output('blob')
+  const blobUrl = URL.createObjectURL(pdfBlob)
+  window.open(blobUrl, '_blank')
 }
 
 // ─── Stripe Payment ───
@@ -406,23 +410,16 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
                 </div>
               </div>
 
-              {/* Disabled input area - visual feedback that chat is completed */}
-              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-2.5 sm:py-3 bg-[#F9F5EE] pb-safe">
-                <div className="flex gap-2">
-                  <input
-                    disabled
-                    placeholder="Chat abgeschlossen"
-                    className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
-                  />
-                  <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                  </button>
-                </div>
-                <div className="flex items-center justify-center gap-2 mt-2 text-xs text-[#9CA3AF]">
-                  <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span>Suche abgeschlossen</span>
-                  <span className="mx-1">&bull;</span>
-                  <Link href="/chat" className="font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">Neue Suche starten</Link>
+              {/* Completed state - clean minimal footer */}
+              <div className="px-3 sm:px-4 py-3 bg-white safe-bottom">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 text-sm text-[#6B7280]">
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Suche abgeschlossen</span>
+                  </div>
+                  <Link href="/chat" className="inline-block mt-2 text-sm font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">
+                    Neue Suche starten &rarr;
+                  </Link>
                 </div>
               </div>
             </div>
@@ -832,50 +829,31 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                 </div>
               </div>
 
-              {/* Chat Input / Audio Controls / Completed / Payment Required */}
-              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-2.5 sm:py-3 bg-white pb-safe">
+              {/* Chat Input - Claude-style minimal design */}
+              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-white safe-bottom">
                 {/* Payment Required State - Lock chat after freemium results */}
                 {paymentSearchId && !hasPaid && !isCompleted ? (
                   <div>
                     <button
                       onClick={() => setShowPaymentModal(true)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] rounded-xl text-sm font-semibold text-white transition-colors shadow-lg shadow-[#F5B731]/20"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] rounded-2xl text-sm font-semibold text-white transition-colors shadow-lg shadow-[#F5B731]/20"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                       Alle Ergebnisse für 49€ freischalten
                     </button>
-                    <div className="flex gap-2 mt-2">
-                      <input
-                        disabled
-                        placeholder="Zahlung erforderlich um fortzufahren"
-                        className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
-                      />
-                      <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                      </button>
-                    </div>
                     <p className="text-xs text-center text-[#9CA3AF] mt-2">
-                      Du hast bereits 3 kostenlose Ergebnisse erhalten. Schalte jetzt alle Treffer frei!
+                      Du hast 3 kostenlose Ergebnisse erhalten. Schalte jetzt alle Treffer frei!
                     </p>
                   </div>
                 ) : isCompleted ? (
-                  <div>
-                    <div className="flex gap-2">
-                      <input
-                        disabled
-                        placeholder="Chat abgeschlossen"
-                        className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
-                      />
-                      <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mt-2 text-xs text-[#9CA3AF]">
-                      <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <div className="text-center py-2">
+                    <div className="flex items-center justify-center gap-2 text-sm text-[#6B7280]">
+                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       <span>Suche abgeschlossen</span>
-                      <span className="mx-1">&bull;</span>
-                      <Link href="/chat" className="font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">Neue Suche starten</Link>
                     </div>
+                    <Link href="/chat" className="inline-block mt-2 text-sm font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">
+                      Neue Suche starten &rarr;
+                    </Link>
                   </div>
                 ) : audioMode ? (
                   <div className="flex flex-col items-center py-1">
@@ -919,7 +897,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit}>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-[#F9F5EE] rounded-2xl border border-[#E8E0D4]/60 focus-within:border-[#F5B731]/40 focus-within:ring-2 focus-within:ring-[#F5B731]/20 transition-all">
                       <input
                         ref={inputRef}
                         value={input}
@@ -927,16 +905,31 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                         placeholder="z.B. Marketing Manager in Berlin..."
                         enterKeyHint="send"
                         autoComplete="off"
-                        className="flex-1 px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        className="flex-1 py-2 bg-transparent text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none"
                         disabled={isLoading}
                         autoFocus
                       />
-                      <button type="button" onClick={handleToggleAudio} className="px-3 py-3 min-h-[44px] min-w-[44px] bg-[#F9F5EE] hover:bg-[#F5EFE3] border border-[#E8E0D4] rounded-xl transition-all flex-shrink-0 text-[#9CA3AF] hover:text-[#F5B731]" title="Sprachmodus">
+                      {/* Mic button */}
+                      <button
+                        type="button"
+                        onClick={handleToggleAudio}
+                        className="w-8 h-8 flex-shrink-0 text-[#9CA3AF] hover:text-[#F5B731] rounded-full flex items-center justify-center transition-colors"
+                        title="Sprachmodus"
+                      >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                       </button>
-                      <button type="submit" disabled={isLoading || !input.trim()} className="px-4 py-3 min-h-[44px] min-w-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                      </button>
+                      {/* Circular send button - only visible when there's text */}
+                      {input.trim() && (
+                        <button
+                          type="submit"
+                          disabled={isLoading}
+                          className="w-8 h-8 flex-shrink-0 bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] text-white rounded-full flex items-center justify-center transition-all active:scale-95"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </form>
                 )}

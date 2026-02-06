@@ -692,22 +692,19 @@ function AnonymousChatView() {
                 </div>
               </div>
 
-              {/* Chat Input */}
-              <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-2.5 sm:py-3 bg-white pb-safe">
+              {/* Chat Input - Claude-style minimal design */}
+              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-white safe-bottom">
                 {requiresRegistration && !showRegModal ? (
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-[#F5F0E8] rounded-2xl border border-[#E8E0D4]/60">
                     <input
                       disabled
                       placeholder="Bitte registriere dich, um fortzufahren"
-                      className="flex-1 px-4 py-3 min-h-[44px] bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
+                      className="flex-1 py-2 bg-transparent text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed focus:outline-none"
                     />
-                    <button disabled className="px-4 py-3 min-h-[44px] min-w-[44px] bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                    </button>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit}>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-[#F9F5EE] rounded-2xl border border-[#E8E0D4]/60 focus-within:border-[#F5B731]/40 focus-within:ring-2 focus-within:ring-[#F5B731]/20 transition-all">
                       <input
                         ref={inputRef}
                         value={input}
@@ -715,13 +712,22 @@ function AnonymousChatView() {
                         placeholder="z.B. Marketing Manager in Berlin..."
                         enterKeyHint="send"
                         autoComplete="off"
-                        className="flex-1 px-4 py-3 min-h-[44px] bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/40 focus:border-[#F5B731]/30 transition-all"
+                        className="flex-1 py-2 bg-transparent text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none"
                         disabled={isLoading || showRegModal}
                         autoFocus
                       />
-                      <button type="submit" disabled={isLoading || !input.trim() || showRegModal} className="px-4 py-3 min-h-[44px] min-w-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#F5EFE3] disabled:text-[#9CA3AF] text-white font-semibold rounded-xl transition-all flex-shrink-0">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
-                      </button>
+                      {/* Circular send button - only visible when there's text */}
+                      {input.trim() && (
+                        <button
+                          type="submit"
+                          disabled={isLoading || showRegModal}
+                          className="w-8 h-8 flex-shrink-0 bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] text-white rounded-full flex items-center justify-center transition-all active:scale-95"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </form>
                 )}
