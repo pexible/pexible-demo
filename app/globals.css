@@ -62,6 +62,11 @@ body.modal-open {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Minimal safe bottom - for input areas that need subtle spacing */
+.safe-bottom {
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+}
+
 /* Smooth scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
