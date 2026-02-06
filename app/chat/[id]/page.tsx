@@ -673,20 +673,22 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
     setHasPaid(true)
     setIsCompleted(true)
 
-    // Mark conversation as completed
+    // Mark conversation as completed on backend
     fetch(`/api/conversations/${conversationId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'completed' }),
     }).catch(() => {})
 
+    // Ask AI to show all results - don't call onComplete() yet
+    // so the user can see the AI's response before view switches
     await append({
       role: 'user',
       content: `Die Stripe-Zahlung war erfolgreich! Alle Ergebnisse sind jetzt freigeschaltet.\n<!--PAYMENT_SUCCESS search_id=${searchId}-->\nBitte zeige mir jetzt alle Ergebnisse.`
     })
-
-    onComplete()
-  }, [paymentSearchId, append, conversationId, onComplete])
+    // Note: onComplete() is NOT called here - the conversation is already marked
+    // as completed on the backend. Next page load will show CompletedChatView.
+  }, [paymentSearchId, append, conversationId])
 
   const handleDownloadPdf = () => {
     const results = hasPaid ? allResults : freemiumResults

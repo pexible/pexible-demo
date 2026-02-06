@@ -31,9 +31,10 @@ async function getCooldownStatus(
   )
   const mostRecent = sorted[0]
 
-  // If the most recent conversation is completed (paid), allow unless unpaid searches exist
+  // If the most recent conversation is completed, allow new chat
+  // (Don't block based on old unpaid searches from abandoned flows)
   if (mostRecent.status === 'completed') {
-    return { canCreateNew: !hasUnpaidSearches, cooldownUntil: null }
+    return { canCreateNew: true, cooldownUntil: null }
   }
 
   // If the most recent conversation is active, check cooldown
