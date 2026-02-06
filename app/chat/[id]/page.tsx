@@ -344,12 +344,14 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
       {/* Navbar */}
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/chat" className="flex items-center gap-1.5 text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] bg-white hover:bg-[#F9F5EE] border border-[#E8E0D4] px-3 py-2 rounded-xl transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-              <span className="hidden sm:inline">Meine Chats</span>
+          <div className="flex items-center gap-3">
+            <Link href="/chat" className="flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:p-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              <span className="hidden sm:inline">Zurück</span>
             </Link>
+            <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight hidden sm:block">pexible</Link>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
             {results.length > 0 && (
               <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-3 py-2 bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm" title="Ergebnisse herunterladen">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -361,7 +363,7 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
                 {userName.charAt(0).toUpperCase()}
               </div>
             )}
-            <button onClick={() => signOut()} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors" title="Abmelden">
+            <button onClick={() => signOut()} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" title="Abmelden">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
             </button>
           </div>
@@ -705,12 +707,14 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
       {/* Navbar */}
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/chat" className="flex items-center gap-1.5 text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] bg-white hover:bg-[#F9F5EE] border border-[#E8E0D4] px-3 py-2 rounded-xl transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-              <span className="hidden sm:inline">Meine Chats</span>
+          <div className="flex items-center gap-3">
+            <Link href="/chat" className="flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:p-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              <span className="hidden sm:inline">Zurück</span>
             </Link>
+            <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight hidden sm:block">pexible</Link>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
             {freemiumResults.length > 0 && (
               <button onClick={handleDownloadPdf} className="p-2 text-[#9CA3AF] hover:text-[#F5B731] transition-colors" title={hasPaid ? 'Alle Ergebnisse herunterladen' : 'Vorschau herunterladen'}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -721,7 +725,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                 {userName.charAt(0).toUpperCase()}
               </div>
             )}
-            <button onClick={() => signOut()} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors" title="Abmelden">
+            <button onClick={() => signOut()} className="text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" title="Abmelden">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
             </button>
           </div>

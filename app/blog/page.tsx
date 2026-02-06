@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import NavAuthButtons from '@/components/NavAuthButtons'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
 const articles = [
   {
@@ -91,20 +92,7 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
 
-      {/* ─── Navbar ─── */}
-      <nav className="sticky top-0 z-50 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic tracking-tight text-[#1A1A2E]">
-            pexible
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/#funktionen" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">Funktionen</Link>
-            <Link href="/#so-funktionierts" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">So funktioniert&apos;s</Link>
-            <Link href="/blog" className="text-sm font-medium text-[#1A1A2E]">Blog</Link>
-          </div>
-          <NavAuthButtons />
-        </div>
-      </nav>
+      <Navbar />
 
       {/* ─── Header ─── */}
       <section className="px-4 pt-16 sm:pt-24 pb-12">
@@ -198,25 +186,7 @@ export default function BlogPage() {
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
-      <footer className="border-t border-[#E8E0D4]/60 bg-[#F9F5EE]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="text-lg font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
-              <span className="text-sm text-[#9CA3AF]">Dein KI Job-Makler</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-[#6B7280]">
-              <Link href="/" className="hover:text-[#1A1A2E] transition-colors">Startseite</Link>
-              <Link href="/blog" className="hover:text-[#1A1A2E] transition-colors">Blog</Link>
-              <Link href="/chat" className="hover:text-[#1A1A2E] transition-colors">Chat</Link>
-            </div>
-          </div>
-          <div className="mt-6 pt-6 border-t border-[#E8E0D4]/60 text-center">
-            <p className="text-xs text-[#9CA3AF]">&copy; {new Date().getFullYear()} pexible. Alle Rechte vorbehalten.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

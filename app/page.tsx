@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import NavAuthButtons, { NavAuthButtonsMobile } from '@/components/NavAuthButtons'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
 // ─── FAQ Data ───
 
@@ -59,63 +60,12 @@ const blogPosts = [
 // ─── Main Landing Page ───
 
 export default function LandingPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-
-  // Body scroll lock for mobile menu
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.classList.add('modal-open')
-      return () => document.body.classList.remove('modal-open')
-    }
-  }, [mobileMenuOpen])
 
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
 
-      {/* ─── Navbar ─── */}
-      <nav className="sticky top-0 z-50 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic tracking-tight text-[#1A1A2E]">
-            pexible
-          </Link>
-
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#funktionen" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">Funktionen</a>
-            <a href="#so-funktionierts" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">So funktioniert&apos;s</a>
-            <a href="#erfolgsgeschichten" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">Erfolgsgeschichten</a>
-            <Link href="/blog" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">Blog</Link>
-          </div>
-
-          <div className="hidden md:flex">
-            <NavAuthButtons />
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#4A5568] hover:text-[#1A1A2E]"
-          >
-            {mobileMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-[#E8E0D4]/60 bg-[#FDF8F0] px-4 py-3 space-y-1">
-            <a href="#funktionen" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">Funktionen</a>
-            <a href="#so-funktionierts" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">So funktioniert&apos;s</a>
-            <a href="#erfolgsgeschichten" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">Erfolgsgeschichten</a>
-            <Link href="/blog" className="block text-sm text-[#4A5568] hover:text-[#1A1A2E] py-3 min-h-[44px] flex items-center">Blog</Link>
-            <NavAuthButtonsMobile onNavigate={() => setMobileMenuOpen(false)} />
-          </div>
-        )}
-      </nav>
+      <Navbar />
 
       {/* ─── Hero Section ─── */}
       <section className="relative px-4 pt-16 sm:pt-24 pb-12 sm:pb-16 overflow-hidden">
@@ -579,51 +529,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Footer ─── */}
-      <footer className="border-t border-[#E8E0D4]/60 bg-[#F9F5EE]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-            <div className="col-span-2 md:col-span-1">
-              <span className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</span>
-              <p className="text-sm text-[#6B7280] mt-3 leading-relaxed">Dein persönlicher KI Job-Makler. Finde Stellen, die andere nicht sehen.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold text-[#1A1A2E] text-sm mb-4">Produkt</h4>
-              <ul className="space-y-2.5">
-                <li><a href="#funktionen" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Funktionen</a></li>
-                <li><a href="#so-funktionierts" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">So funktioniert&apos;s</a></li>
-                <li><Link href="/chat" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Job-Suche starten</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-[#1A1A2E] text-sm mb-4">Ressourcen</h4>
-              <ul className="space-y-2.5">
-                <li><Link href="/blog" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Blog</Link></li>
-                <li><a href="#erfolgsgeschichten" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Erfolgsgeschichten</a></li>
-                <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Bewerbungstipps</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold text-[#1A1A2E] text-sm mb-4">Rechtliches</h4>
-              <ul className="space-y-2.5">
-                <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Impressum</a></li>
-                <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Datenschutz</a></li>
-                <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">AGB</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-[#E8E0D4]/60 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-[#9CA3AF]">&copy; {new Date().getFullYear()} pexible. Alle Rechte vorbehalten.</p>
-            <div className="flex items-center gap-4 text-xs text-[#9CA3AF]">
-              <span>SSL-verschlüsselt</span>
-              <span>&bull;</span>
-              <span>DSGVO-konform</span>
-              <span>&bull;</span>
-              <span>Made in Germany</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }
