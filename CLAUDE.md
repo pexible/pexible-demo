@@ -2,6 +2,10 @@
 
 > Diese Datei ist die primaere Referenz fuer Claude Code Sessions.
 > Lies sie ZUERST, bevor du Code aenderst. Alle Regeln hier sind verbindlich.
+>
+> **Struktur:** Abschnitte 1-13 beschreiben WAS gebaut wurde (Projekt, Architektur, APIs).
+> **Abschnitt 14** beschreibt WIE gearbeitet wird (Verhaltensregeln, Arbeitsmuster).
+> Beide sind gleichermassen bindend.
 
 ---
 
@@ -332,17 +336,28 @@ Navy (Text, dunkle Elemente):
 
 ## 8. Aenderungsanleitungen
 
+> **Wichtig:** Bei jeder Aenderung gelten die Verhaltensregeln aus Abschnitt 14.
+> Insbesondere: Annahmen explizit machen (V1), Scope-Disziplin (V5), Einfachheit (V4).
+
 ### 8.1 Neuen API-Endpunkt hinzufuegen
+
+**Vor dem Start (V1):** Klaere: Soll der Endpunkt geschuetzt sein? Welches Request/Response-Schema?
+
 1. Erstelle `app/api/<name>/route.ts`
 2. Exportiere `export async function POST(req: Request) { ... }`
 3. Verwende `NextResponse.json()` fuer JSON-Antworten
 4. Falls geschuetzt: Fuege Pattern zu `middleware.ts:19` matcher-Array hinzu
 5. Fehlermeldungen: Deutsch (R1)
 
+**Nach der Aenderung (14.4):** Dokumentiere was geaendert wurde und was bewusst nicht angefasst wurde.
+
 ### 8.2 Neues AI-Tool hinzufuegen
+
+**Vor dem Start (V1):** Klaere: Was soll das Tool tun? Welche Parameter? Braucht es eine Frontend-Reaktion (Modal, State-Update)?
+
 1. Oeffne `app/api/chat/route.ts`
 2. Fuege Tool in `tools`-Objekt ein (nach Zeile 24, innerhalb `streamText()`)
-3. Pattern:
+3. Pattern (V4 -- halte es einfach):
 ```typescript
 tool_name: tool({
   description: 'Deutsche Beschreibung was das Tool tut',
@@ -350,32 +365,47 @@ tool_name: tool({
     param: z.string().min(1)  // zod-Schema
   }),
   execute: async (params) => {
-    // Logik
+    // Logik -- keine Ueberkomplizierung
     return { action: 'frontend_action_name', ...data }
   }
 })
 ```
 4. Im Frontend (`chat/page.tsx`): useEffect hinzufuegen das `toolInvocations` ueberwacht und auf `action` reagiert (Pattern: Zeile 349-373)
 
+**Scope-Disziplin (V5):** Nur das Tool hinzufuegen, keine "Verbesserungen" an anderen Tools oder am System-Prompt.
+
 ### 8.3 Neues Modal hinzufuegen
+
+**Vor dem Start (V1):** Klaere: Welches Tool triggert das Modal? Welche Daten werden angezeigt/gesammelt? Welche API wird aufgerufen?
+
 1. Definiere Modal-Komponente in `chat/page.tsx` (Pattern: RegistrationModal, Zeile 131-204)
 2. Fuege State hinzu: `const [showXxxModal, setShowXxxModal] = useState(false)`
 3. Fuege useEffect hinzu das auf Tool-Invocation reagiert
 4. Rendere Modal am Ende der ChatPage-Komponente (Zeile 811-812)
 5. Verwende dunkles Modal-Theme (R4)
 
+**Einfachheit (V4):** Die Chat-Seite ist bereits 815 Zeilen. Halte das Modal minimal. Kein Over-Engineering.
+
 ### 8.4 Neue Seite hinzufuegen
+
+**Vor dem Start (V1):** Klaere: Soll die Seite geschuetzt sein? Client oder Server Component?
+
 1. Erstelle `app/<seitenname>/page.tsx`
 2. Default-Export: React-Komponente
 3. Client-Komponenten: `'use client'` als erste Zeile
-4. Basis-Layout: `<div className="min-h-screen bg-[#FDF8F0]">`
+4. Basis-Layout: `<div className="min-h-screen bg-[#FDF8F0]">` (R4)
 5. Falls geschuetzt: Pfad in `middleware.ts:19` matcher eintragen
 
 ### 8.5 System-Prompt aendern
+
+**Vorsicht (V2, V3):** Der System-Prompt steuert das gesamte Chat-Verhalten. Aenderungen koennen unbeabsichtigte Nebenwirkungen haben. Bei Unsicherheit: nachfragen.
+
 - Datei: `app/api/chat/route.ts:115-197`
 - Der Prompt ist ein langer Template-String (Backticks)
 - Struktur: 8 Phasen + Regeln-Block
 - Aenderungen am Prompt beeinflussen das gesamte Chat-Verhalten
+
+**Scope-Disziplin (V5):** Nur die angeforderte Phase/Regel aendern, nicht den gesamten Prompt "verbessern".
 
 ### 8.6 Demo-Firmen aendern
 - Datei: `app/api/register/route.ts:7-18`
@@ -390,6 +420,67 @@ tool_name: tool({
 
 ### 8.8 Neues Datenmodell hinzufuegen
 Siehe Abschnitt 4, "Regel: Neues Datenmodell hinzufuegen"
+
+### 8.9 Ableitungsbeispiele: Regeln in der Praxis
+
+Diese Beispiele zeigen, wie die Projekt-Regeln (R1-R7) und Verhaltensregeln (V1-V6, P1-P4) zusammenwirken:
+
+**Beispiel 1: "Fuege ein neues Feld `phone` zum User-Modell hinzu"**
+```
+ANNAHMEN (V1):
+1. Das Feld ist optional (nicht required)
+2. Keine Validierung im Frontend noetig (nur Backend)
+3. Keine Migration bestehender Daten noetig
+→ Korrigiere mich, oder ich fahre fort.
+
+PLAN (P4):
+1. User-Typ in lib/storage.ts erweitern (R3)
+2. Registration-API anpassen falls phone gesammelt werden soll
+3. Keine anderen Dateien anfassen (V5)
+→ Ausfuehrung.
+```
+
+**Beispiel 2: "Der Chat soll auch auf Englisch funktionieren"**
+```
+STOPP (V2): Das widerspricht R1 (UI immer Deutsch) und erfordert:
+- Aenderung am System-Prompt (R6)
+- Aenderung aller Fehlermeldungen in allen APIs
+- Moeglicherweise Spracherkennung/Auswahl-UI
+
+Das ist eine groessere Architektur-Entscheidung. Soll ich:
+a) Nur den System-Prompt zweisprachig machen?
+b) Einen Sprach-Toggle im UI implementieren?
+c) Automatische Spracherkennung?
+
+→ Bitte klaeren bevor ich fortfahre.
+```
+
+**Beispiel 3: "Mach den Code schoener"**
+```
+WIDERSPRECHEN (V3): "Schoener" ist kein messbares Ziel. Ich schlage vor:
+- Falls Performance: Konkrete Bottlenecks identifizieren
+- Falls Lesbarkeit: Spezifische Dateien/Funktionen nennen
+- Falls Konsistenz: ESLint/Prettier einrichten (siehe Abschnitt 11)
+
+Was genau stoert dich am aktuellen Code?
+```
+
+**Beispiel 4: Nach einem Refactoring**
+```
+AENDERUNGEN (14.4):
+- lib/storage.ts: getSearchById() hinzugefuegt fuer direkten Zugriff
+
+NICHT ANGEFASST (V5):
+- api/chat/route.ts: Nutzt weiter getSearches().find() -- koennte
+  optimiert werden, war aber nicht Teil der Anforderung
+
+DEAD CODE (V6):
+- Keine unbenutzten Elemente entstanden
+
+MOEGLICHE BEDENKEN:
+- getSearchById gibt undefined zurueck wenn nicht gefunden --
+  Aufrufer muss das pruefen
+```
 
 ---
 
@@ -483,6 +574,12 @@ npm run dev                         # http://localhost:3000
 3. `lib/storage.ts` -- Datenmodelle, CRUD
 4. `app/api/register/route.ts` -- Registrierung, Demo-Ergebnisse
 5. `middleware.ts` -- Routen-Schutz (was geschuetzt ist, was nicht)
+
+**Bevor du Code schreibst:**
+1. Lies Abschnitt 14 (Arbeitsweise und Verhaltensprinzipien)
+2. Bei nicht-trivialen Aufgaben: Annahmen explizit machen (V1)
+3. Bei Unklarheiten: Fragen statt raten (V2)
+4. Plan ausgeben bei mehrstufigen Aufgaben (P4)
 
 ---
 
