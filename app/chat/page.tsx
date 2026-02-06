@@ -594,8 +594,8 @@ function AnonymousChatView() {
             <Link href="/login" className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] transition-colors px-3 py-2.5 min-h-[44px] flex items-center">
               Anmelden
             </Link>
-            <Link href="/register" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors">
-              Registrieren
+            <Link href="/login" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors">
+              Konto erstellen
             </Link>
           </div>
         </div>
