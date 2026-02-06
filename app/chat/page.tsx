@@ -159,7 +159,7 @@ function ChatListView() {
             )}
             <button
               onClick={() => signOut()}
-              className="text-xs text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors px-2 py-1"
+              className="text-xs text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
               title="Abmelden"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
@@ -176,7 +176,7 @@ function ChatListView() {
           <button
             onClick={handleNewChat}
             disabled={isCreating || !canCreateNew}
-            className={`flex items-center gap-2 px-4 py-2.5 font-semibold rounded-xl transition-colors text-sm ${
+            className={`flex items-center gap-2 px-4 py-2.5 min-h-[44px] font-semibold rounded-xl transition-colors text-sm ${
               canCreateNew
                 ? 'bg-[#1A1A2E] hover:bg-[#2D2D44] text-white disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF]'
                 : 'bg-[#E8E0D4] text-[#9CA3AF] cursor-not-allowed'
@@ -195,7 +195,9 @@ function ChatListView() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Chats durchsuchen ..."
-            className="w-full pl-10 pr-4 py-3 bg-white border border-[#E8E0D4]/80 rounded-xl text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/30 focus:border-[#F5B731]/20 transition-all"
+            enterKeyHint="search"
+            autoComplete="off"
+            className="w-full pl-10 pr-4 py-3 min-h-[44px] bg-white border border-[#E8E0D4]/80 rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/30 focus:border-[#F5B731]/20 transition-all"
           />
         </div>
 
@@ -260,7 +262,7 @@ function ChatListView() {
             <button
               onClick={handleNewChat}
               disabled={isCreating || !canCreateNew}
-              className={`inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-colors text-sm ${
+              className={`inline-flex items-center gap-2 px-6 py-3 min-h-[48px] font-semibold rounded-xl transition-colors text-sm ${
                 canCreateNew
                   ? 'bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E]'
                   : 'bg-[#E8E0D4] text-[#9CA3AF] cursor-not-allowed'
@@ -279,7 +281,7 @@ function ChatListView() {
               <Link
                 key={conv.id}
                 href={`/chat/${conv.id}`}
-                className="flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-[#E8E0D4]/60 transition-all group"
+                className="flex items-center gap-4 px-4 py-4 min-h-[60px] rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-[#E8E0D4]/60 transition-all group active:scale-[0.99]"
               >
                 {/* Icon */}
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -464,6 +466,14 @@ function AnonymousChatView() {
       setRegLoading(false)
     }
   }
+
+  // Body scroll lock for registration modal
+  useEffect(() => {
+    if (showRegModal) {
+      document.body.classList.add('modal-open')
+      return () => document.body.classList.remove('modal-open')
+    }
+  }, [showRegModal])
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
