@@ -23,7 +23,25 @@ export async function POST(req: Request) {
       )
     }
 
+    // Validate input format to prevent injection of unexpected values
+    if (typeof payment_intent_id !== 'string' || typeof search_id !== 'string') {
+      return NextResponse.json(
+        { error: 'Ungültige Parameter' },
+        { status: 400 }
+      )
+    }
+
     const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id)
+
+    // Verify that the PaymentIntent's metadata matches the claimed search_id.
+    // This prevents IDOR: an attacker cannot unlock an arbitrary search
+    // by providing a valid payment_intent_id that belongs to a different search.
+    if (paymentIntent.metadata?.search_id !== search_id) {
+      return NextResponse.json(
+        { error: 'Zahlungszuordnung ungültig' },
+        { status: 403 }
+      )
+    }
 
     if (paymentIntent.status === 'succeeded') {
       try {
@@ -37,8 +55,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: false, status: paymentIntent.status })
-  } catch (error) {
-    console.error('Payment confirm error:', error)
+  } catch {
     return NextResponse.json(
       { error: 'Fehler bei der Zahlungsbestätigung' },
       { status: 500 }

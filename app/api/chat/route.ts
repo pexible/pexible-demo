@@ -5,10 +5,25 @@ import { nanoid } from 'nanoid'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { generateDemoResults } from '@/lib/demo-data'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const maxDuration = 30
 
+// Input limits to prevent cost abuse
+const MAX_MESSAGES = 100
+const MAX_MESSAGE_LENGTH = 5000
+
 export async function POST(req: Request) {
+  // Rate limit: 20 chat requests per minute per IP
+  const ip = getClientIp(req)
+  const { limited } = rateLimit(`chat:${ip}`, 20, 60_000)
+  if (limited) {
+    return new Response(JSON.stringify({ error: 'Zu viele Anfragen. Bitte warte kurz.' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const userId = user?.id || null
@@ -28,6 +43,23 @@ export async function POST(req: Request) {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     })
+  }
+
+  // Limit message count and individual message length to prevent API cost abuse
+  if (messages.length > MAX_MESSAGES) {
+    return new Response(JSON.stringify({ error: 'Zu viele Nachrichten' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  for (const msg of messages) {
+    if (typeof msg.content === 'string' && msg.content.length > MAX_MESSAGE_LENGTH) {
+      return new Response(JSON.stringify({ error: 'Nachricht zu lang' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
   }
 
   // Check if conversation has an existing search
@@ -236,7 +268,11 @@ REGELN:
         execute: async ({ search_id }) => {
           try {
             const admin = createAdminClient()
-            const { data: search } = await admin.from('searches').select().eq('id', search_id).single()
+
+            // Scope check_results to the authenticated user's searches
+            const query = admin.from('searches').select().eq('id', search_id)
+            if (userId) query.eq('user_id', userId)
+            const { data: search } = await query.single()
 
             if (!search) {
               return { found: false, error: 'Suche nicht gefunden' }
