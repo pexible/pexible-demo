@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import NavAuthButtons, { NavAuthButtonsMobile } from '@/components/NavAuthButtons'
 
@@ -61,6 +61,14 @@ const blogPosts = [
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+
+  // Body scroll lock for mobile menu
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.classList.add('modal-open')
+      return () => document.body.classList.remove('modal-open')
+    }
+  }, [mobileMenuOpen])
 
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">

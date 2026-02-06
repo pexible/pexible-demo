@@ -512,6 +512,14 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
     }
   }, [isLoading, showPaymentModal, isCompleted])
 
+  // Body scroll lock for payment modal
+  useEffect(() => {
+    if (showPaymentModal) {
+      document.body.classList.add('modal-open')
+      return () => document.body.classList.remove('modal-open')
+    }
+  }, [showPaymentModal])
+
   // Extract results from create_search tool invocations
   useEffect(() => {
     for (const message of messages) {
