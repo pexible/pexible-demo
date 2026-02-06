@@ -673,20 +673,22 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
     setHasPaid(true)
     setIsCompleted(true)
 
-    // Mark conversation as completed
+    // Mark conversation as completed on backend
     fetch(`/api/conversations/${conversationId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'completed' }),
     }).catch(() => {})
 
+    // Ask AI to show all results - don't call onComplete() yet
+    // so the user can see the AI's response before view switches
     await append({
       role: 'user',
       content: `Die Stripe-Zahlung war erfolgreich! Alle Ergebnisse sind jetzt freigeschaltet.\n<!--PAYMENT_SUCCESS search_id=${searchId}-->\nBitte zeige mir jetzt alle Ergebnisse.`
     })
-
-    onComplete()
-  }, [paymentSearchId, append, conversationId, onComplete])
+    // Note: onComplete() is NOT called here - the conversation is already marked
+    // as completed on the backend. Next page load will show CompletedChatView.
+  }, [paymentSearchId, append, conversationId])
 
   const handleDownloadPdf = () => {
     const results = hasPaid ? allResults : freemiumResults
@@ -822,20 +824,33 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                 </div>
               </div>
 
-              {/* Chat Input / Audio Controls / Completed */}
+              {/* Chat Input / Audio Controls / Completed / Payment Required */}
               <div className="border-t border-[#F0EBE2] px-3 sm:px-4 py-2.5 sm:py-3 bg-white pb-safe">
-                {paymentSearchId && !showPaymentModal && !hasPaid && !isCompleted && (
-                  <div className="mb-2">
+                {/* Payment Required State - Lock chat after freemium results */}
+                {paymentSearchId && !hasPaid && !isCompleted ? (
+                  <div>
                     <button
                       onClick={() => setShowPaymentModal(true)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#F5B731]/10 hover:bg-[#F5B731]/20 border border-[#F5B731]/30 rounded-xl text-sm font-medium text-[#1A1A2E] transition-colors"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] rounded-xl text-sm font-semibold text-white transition-colors shadow-lg shadow-[#F5B731]/20"
                     >
-                      <svg className="w-4 h-4 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                      Zahlung fortsetzen
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                      Alle Ergebnisse für 49€ freischalten
                     </button>
+                    <div className="flex gap-2 mt-2">
+                      <input
+                        disabled
+                        placeholder="Zahlung erforderlich um fortzufahren"
+                        className="flex-1 px-4 py-3 bg-[#F0EBE2] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF] placeholder-[#B8B0A4] cursor-not-allowed"
+                      />
+                      <button disabled className="px-4 py-3 bg-[#E8E0D4] text-[#B8B0A4] rounded-xl cursor-not-allowed flex-shrink-0">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                      </button>
+                    </div>
+                    <p className="text-xs text-center text-[#9CA3AF] mt-2">
+                      Du hast bereits 3 kostenlose Ergebnisse erhalten. Schalte jetzt alle Treffer frei!
+                    </p>
                   </div>
-                )}
-                {isCompleted ? (
+                ) : isCompleted ? (
                   <div>
                     <div className="flex gap-2">
                       <input

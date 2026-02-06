@@ -98,11 +98,12 @@ export default function LoginPage() {
     const { data, error } = await supabase.auth.verifyOtp({
       email,
       token: code,
-      type: 'magiclink',
+      type: 'email',
     })
 
     if (error) {
-      setError('Ungültiger oder abgelaufener Code. Bitte versuche es erneut.')
+      console.error('Verify OTP error:', error)
+      setError(error.message || 'Ungültiger oder abgelaufener Code')
       setIsLoading(false)
       setOtp(['', '', '', '', '', ''])
       otpRefs.current[0]?.focus()

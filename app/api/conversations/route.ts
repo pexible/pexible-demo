@@ -19,8 +19,10 @@ async function getCooldownStatus(
 
   const hasUnpaidSearches = unpaidSearches && unpaidSearches.length > 0
 
+  // If user has no conversations, allow creating first one
+  // (even if there's an orphan unpaid search from failed registration)
   if (userConversations.length === 0) {
-    return { canCreateNew: !hasUnpaidSearches, cooldownUntil: null }
+    return { canCreateNew: true, cooldownUntil: null }
   }
 
   // Sort by created_at descending to find the most recent conversation
@@ -29,9 +31,10 @@ async function getCooldownStatus(
   )
   const mostRecent = sorted[0]
 
-  // If the most recent conversation is completed (paid), allow unless unpaid searches exist
+  // If the most recent conversation is completed, allow new chat
+  // (Don't block based on old unpaid searches from abandoned flows)
   if (mostRecent.status === 'completed') {
-    return { canCreateNew: !hasUnpaidSearches, cooldownUntil: null }
+    return { canCreateNew: true, cooldownUntil: null }
   }
 
   // If the most recent conversation is active, check cooldown
@@ -134,7 +137,8 @@ export async function POST() {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: 'Fehler beim Erstellen der Konversation' }, { status: 500 })
+    console.error('Supabase insert error:', error)
+    return NextResponse.json({ error: `Fehler beim Erstellen der Konversation: ${error.message}` }, { status: 500 })
   }
 
   return NextResponse.json({
