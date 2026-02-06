@@ -6,6 +6,7 @@ import { useChat } from 'ai/react'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Navbar from '@/components/Navbar'
 
 // ─── Types ───
 
@@ -68,7 +69,7 @@ export default function ChatPage() {
 // ─── Authenticated: Chat List ───
 
 function ChatListView() {
-  const { user, signOut } = useUser()
+  const { user } = useUser()
   const router = useRouter()
   const [conversations, setConversations] = useState<ConversationItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -138,35 +139,9 @@ function ChatListView() {
     ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
     : conversations
 
-  const userName = user?.firstName || ''
-
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic tracking-tight text-[#1A1A2E]">
-            pexible
-          </Link>
-          <div className="flex items-center gap-3">
-            {userName && (
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#F5B731] to-[#E8930C] rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                <span className="text-sm font-medium text-[#4A5568] hidden sm:inline">{userName}</span>
-              </div>
-            )}
-            <button
-              onClick={() => signOut()}
-              className="text-xs text-[#9CA3AF] hover:text-[#1A1A2E] transition-colors p-2 min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2"
-              title="Abmelden"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
-            </button>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
