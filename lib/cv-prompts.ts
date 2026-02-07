@@ -241,12 +241,20 @@ Gib AUSSCHLIESSLICH ein valides JSON-Objekt zurück. Kein Markdown, kein umgeben
   ]
 }
 
-WICHTIG zur Konsistenz:
-- Ein CV der exakt gleich ist, muss den exakt gleichen Score erhalten
-- Die Rubrik ist verbindlich – vergib Punkte strikt nach den definierten Kriterien
-- "reasoning" in den Details muss kurz und faktisch sein (max 1 Satz), keine Wertungen wie "toll" oder "super"
-- Der Gesamt-Score MUSS die Summe aller Kategorie-Scores sein
-- Jeder Kategorie-Score MUSS die Summe seiner Detail-Scores sein`
+DETERMINISTISCHE BEWERTUNG – KRITISCH:
+Dein Scoring MUSS bei identischem Input immer das identische Ergebnis liefern. Halte dich an folgende Regeln:
+
+1. KEINE RANGES verwenden: Vergib immer den niedrigsten Wert eines Bereichs, es sei denn, ALLE Kriterien des höheren Werts sind zweifelsfrei erfüllt. Im Zweifel: die niedrigere Punktzahl.
+2. ZÄHLE KONKRET: Wo die Rubrik Prozentangaben nennt (z.B. ">80% Action Verbs"), zähle die tatsächliche Anzahl und berechne den Prozentsatz. Schreibe die Zählung in das "reasoning" Feld.
+3. BINÄRE PRÜFPUNKTE: Prüfe jeden Unterpunkt als Ja/Nein-Checkliste:
+   - Sektionserkennung: Zähle wie viele der Standard-Bezeichnungen exakt verwendet werden
+   - Datumsformat: Ist es durchgehend identisch (Ja/Nein)?
+   - Action Verbs: Zähle Bulletpoints mit vs. ohne Action Verb am Anfang
+   - Quantifizierung: Zähle Bulletpoints mit vs. ohne konkrete Zahlen
+4. "reasoning" MUSS die konkreten Zählungen enthalten, z.B. "5 von 8 Bulletpoints beginnen mit Action Verb (62%)", NICHT "Überwiegend gute Action Verbs"
+5. Der Gesamt-Score MUSS die Summe aller Kategorie-Scores sein
+6. Jeder Kategorie-Score MUSS die Summe seiner Detail-Scores sein
+7. Runde NIEMALS zugunsten des Kandidaten. Wähle immer den Score, der durch die Zählung am genauesten belegt wird.`
 
 export const CV_OPTIMIZATION_SYSTEM_PROMPT = `Du bist ein professioneller CV-Optimierer, spezialisiert auf den DACH-Arbeitsmarkt und ATS-Systeme (Applicant Tracking Systems). Du überarbeitest Lebensläufe für maximale ATS-Kompatibilität und inhaltliche Wirkung.
 
