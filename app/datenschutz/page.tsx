@@ -585,6 +585,81 @@ export default function DatenschutzPage() {
               sonstige Weise verarbeitet wurden, nicht mehr notwendig sind.
             </p>
           </section>
+
+          {/* 10. CV-Check */}
+          <section>
+            <h2 className="text-xl sm:text-2xl font-bold text-[#1A1A2E] mb-4">
+              10) Datenverarbeitung beim CV-Check
+            </h2>
+            <p>
+              <strong>10.1</strong> Unser CV-Check-Service ermoeglicht es Ihnen,
+              Ihren Lebenslauf (PDF) hochzuladen und eine KI-gestuetzte Analyse
+              sowie Optimierung zu erhalten. Im Folgenden erlaeutern wir, welche
+              Daten dabei verarbeitet werden.
+            </p>
+
+            <h3 className="text-lg font-bold text-[#1A1A2E] mt-6 mb-3">
+              10.2 Kostenlose CV-Analyse (Stufe 1)
+            </h3>
+            <p>
+              Bei der kostenlosen Analyse wird der Text Ihres Lebenslaufs aus
+              der hochgeladenen PDF-Datei extrahiert. Vor der Uebermittlung an
+              unseren KI-Partner werden personenbezogene Kontaktdaten (Name,
+              E-Mail-Adresse, Telefonnummer, Postadresse) automatisiert erkannt
+              und durch Platzhalter ersetzt (z.B. [NAME], [EMAIL]). Der
+              anonymisierte Text wird anschliessend an Anthropic (Claude)
+              uebermittelt, um eine Bewertung und Verbesserungstipps zu
+              generieren.
+            </p>
+            <p className="mt-3">
+              Die hochgeladene PDF-Datei wird unmittelbar nach der
+              Textextraktion geloescht. Der extrahierte Text wird nur im
+              Arbeitsspeicher gehalten und nach Abschluss der Analyse geloescht.
+              Es erfolgt kein Logging des Lebenslauf-Inhalts. Die Ergebnisse
+              (Score und Tipps) werden nicht serverseitig gespeichert.
+            </p>
+            <p className="mt-3">
+              Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Durchfuehrung
+              vorvertraglicher Massnahmen) sowie Art. 6 Abs. 1 lit. f DSGVO
+              (berechtigtes Interesse an der Bereitstellung des Services).
+            </p>
+
+            <h3 className="text-lg font-bold text-[#1A1A2E] mt-6 mb-3">
+              10.3 Kostenpflichtige CV-Optimierung (Stufe 2)
+            </h3>
+            <p>
+              Bei der kostenpflichtigen Optimierung wird der anonymisierte
+              Lebenslauf-Text erneut an Anthropic (Claude) uebermittelt, um
+              eine ueberarbeitete Version zu erstellen. Nach Erhalt der
+              optimierten Version werden die zuvor entfernten Kontaktdaten
+              wieder eingesetzt. Die generierten Dokumente (PDF, DOCX) werden
+              fuer 24 Stunden zum Download bereitgestellt und anschliessend
+              automatisch geloescht.
+            </p>
+            <p className="mt-3">
+              Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Vertragserfullung).
+            </p>
+
+            <h3 className="text-lg font-bold text-[#1A1A2E] mt-6 mb-3">
+              10.4 Auftragsverarbeiter: Anthropic
+            </h3>
+            <p>
+              Zur Durchfuehrung der KI-gestuetzten Analyse und Optimierung
+              nutzen wir den Dienst Claude von Anthropic, PBC, 548 Market St,
+              PMB 90375, San Francisco, CA 94104, USA. Anthropic verarbeitet
+              die uebermittelten (anonymisierten) Daten ausschliesslich zur
+              Erstellung der angeforderten Analyse bzw. Optimierung. Die Daten
+              werden von Anthropic nicht fuer das Training von KI-Modellen
+              verwendet. Wir haben mit Anthropic einen
+              Auftragsverarbeitungsvertrag geschlossen, der den Anforderungen
+              des Art. 28 DSGVO entspricht.
+            </p>
+            <p className="mt-3">
+              Ihre personenbezogenen Kontaktdaten (Name, E-Mail, Telefon,
+              Adresse) verlassen unseren Server nicht und werden nicht an
+              Anthropic uebermittelt.
+            </p>
+          </section>
         </div>
       </main>
 
