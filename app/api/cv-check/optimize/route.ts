@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     // Retrieve CV text from token store
-    const tokenEntry = retrieveToken(cv_text_token)
+    const tokenEntry = await retrieveToken(cv_text_token)
     if (!tokenEntry) {
       return NextResponse.json(
         { error: 'Deine Sitzung ist abgelaufen. Bitte lade deinen Lebenslauf erneut hoch.' },
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
     }
 
     // Clean up token
-    deleteToken(cv_text_token)
+    await deleteToken(cv_text_token)
 
     return NextResponse.json({
       id: resultId,
