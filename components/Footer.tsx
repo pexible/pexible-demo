@@ -10,7 +10,7 @@ export default function Footer() {
             <p className="text-sm text-[#6B7280] mt-3 leading-relaxed">Dein pers&ouml;nlicher KI Job-Makler. Finde Stellen, die andere nicht sehen.</p>
           </div>
           <div>
-            <h4 className="font-semibold text-[#1A1A2E] text-sm mb-4">Produkt</h4>
+            <h3 className="font-semibold text-[#1A1A2E] text-sm mb-4">Produkt</h3>
             <ul className="space-y-2.5">
               <li><Link href="/#funktionen" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Funktionen</Link></li>
               <li><Link href="/#so-funktionierts" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">So funktioniert&apos;s</Link></li>
@@ -18,7 +18,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-[#1A1A2E] text-sm mb-4">Ressourcen</h4>
+            <h3 className="font-semibold text-[#1A1A2E] text-sm mb-4">Ressourcen</h3>
             <ul className="space-y-2.5">
               <li><Link href="/blog" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Blog</Link></li>
               <li><Link href="/#erfolgsgeschichten" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Erfolgsgeschichten</Link></li>
@@ -26,7 +26,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold text-[#1A1A2E] text-sm mb-4">Rechtliches</h4>
+            <h3 className="font-semibold text-[#1A1A2E] text-sm mb-4">Rechtliches</h3>
             <ul className="space-y-2.5">
               <li><Link href="/impressum" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Impressum</Link></li>
               <li><Link href="/datenschutz" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Datenschutz</Link></li>
