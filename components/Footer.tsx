@@ -22,15 +22,15 @@ export default function Footer() {
             <ul className="space-y-2.5">
               <li><Link href="/blog" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Blog</Link></li>
               <li><Link href="/#erfolgsgeschichten" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Erfolgsgeschichten</Link></li>
-              <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Bewerbungstipps</a></li>
+              <li><Link href="/blog#bewerbungstipps-2026" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Bewerbungstipps</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="font-semibold text-[#1A1A2E] text-sm mb-4">Rechtliches</h4>
             <ul className="space-y-2.5">
-              <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Impressum</a></li>
-              <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Datenschutz</a></li>
-              <li><a href="#" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">AGB</a></li>
+              <li><Link href="/impressum" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Impressum</Link></li>
+              <li><Link href="/datenschutz" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Datenschutz</Link></li>
+              <li><Link href="/impressum#widerruf" className="text-sm text-[#6B7280] hover:text-[#1A1A2E] transition-colors">AGB</Link></li>
             </ul>
           </div>
         </div>
