@@ -122,6 +122,31 @@ body.modal-open {
   }
 }
 
+/* ─── Reduced motion: respect user preference ─── */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Navigation transitions ─── */
+
+/* Visibility transition helper – allows opacity/transform to animate before hiding */
+.transition-visibility {
+  transition: visibility 0s linear 300ms;
+}
+.transition-visibility.visible {
+  transition-delay: 0s;
+}
+
 /* Chat page specific dark theme override */
 .chat-dark-theme {
   background-color: #08080e;

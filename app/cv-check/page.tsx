@@ -349,7 +349,7 @@ export default function CvCheckPage() {
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
       <Navbar />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">

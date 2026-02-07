@@ -14,14 +14,14 @@ export default function ImpressumPage() {
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+      <main id="main-content" className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         {/* Breadcrumb */}
-        <nav className="mb-8 text-sm text-[#9CA3AF]">
-          <Link href="/" className="hover:text-[#1A1A2E] transition-colors">
-            Startseite
-          </Link>
-          <span className="mx-2">/</span>
-          <span className="text-[#1A1A2E] font-medium">Impressum</span>
+        <nav aria-label="Breadcrumb" className="mb-8 text-sm text-[#9CA3AF]">
+          <ol className="flex items-center gap-0">
+            <li><Link href="/" className="hover:text-[#1A1A2E] transition-colors">Startseite</Link></li>
+            <li><span className="mx-2" aria-hidden="true">/</span></li>
+            <li aria-current="page"><span className="text-[#1A1A2E] font-medium">Impressum</span></li>
+          </ol>
         </nav>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-10">
