@@ -240,8 +240,8 @@ function OptimizeContent() {
       }
 
       const data: OptimizationResultData = await res.json()
-      setOptimizationResult(data)
-      setOptimizationPhase(null)
+      // Redirect to persistent result page instead of showing inline
+      router.push(`/cv-check/result/${data.id}`)
     } catch {
       phaseTimers.forEach(clearTimeout)
       setOptimizationError('Netzwerkfehler bei der Optimierung.')

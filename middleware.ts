@@ -29,15 +29,16 @@ export async function middleware(request: NextRequest) {
   // Redirect unauthenticated users on protected routes
   const pathname = request.nextUrl.pathname
   const isProtected =
-    pathname.startsWith('/mein-pex') ||  // unified dashboard
-    pathname.match(/^\/chat\/.+/) ||   // /chat/{id} but NOT /chat
+    pathname.startsWith('/mein-pex') ||              // unified dashboard requires auth
+    pathname.match(/^\/chat\/.+/) ||                 // /chat/{id} but NOT /chat
     pathname.startsWith('/upload') ||
     pathname.startsWith('/api/upload') ||
     pathname.startsWith('/api/conversations') ||
-    pathname.startsWith('/cv-check/result') ||      // viewing past results requires auth
+    pathname.startsWith('/cv-check/result') ||       // viewing past results requires auth
+    pathname.startsWith('/cv-check/optimize') ||     // optimization page requires auth
     pathname.startsWith('/api/cv-check/results') ||  // results API requires auth
     pathname.startsWith('/api/cv-check/download') || // downloads require auth
-    pathname.startsWith('/api/cv-check/optimize') || // optimization requires auth
+    pathname.startsWith('/api/cv-check/optimize') || // optimization API requires auth
     pathname.startsWith('/api/cv-check/create-checkout') // checkout requires auth
 
   if (!user && isProtected) {

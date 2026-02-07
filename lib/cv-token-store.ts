@@ -16,6 +16,7 @@ interface ContactData {
 export interface TokenEntry {
   anonymizedText: string
   originalContactData: ContactData
+  language: string
   createdAt: number
 }
 
@@ -24,13 +25,15 @@ const TOKEN_TTL_MS = 60 * 60 * 1000 // 60 minutes
 export async function storeToken(
   token: string,
   anonymizedText: string,
-  originalContactData: ContactData
+  originalContactData: ContactData,
+  language: string = 'de'
 ): Promise<void> {
   const supabase = createAdminClient()
   await supabase.from('cv_tokens').upsert({
     token,
     anonymized_text: anonymizedText,
     contact_data: originalContactData,
+    language,
     created_at: new Date().toISOString(),
   })
 }
@@ -39,7 +42,7 @@ export async function retrieveToken(token: string): Promise<TokenEntry | null> {
   const supabase = createAdminClient()
   const { data } = await supabase
     .from('cv_tokens')
-    .select('anonymized_text, contact_data, created_at')
+    .select('anonymized_text, contact_data, language, created_at')
     .eq('token', token)
     .single()
 
@@ -54,6 +57,7 @@ export async function retrieveToken(token: string): Promise<TokenEntry | null> {
   return {
     anonymizedText: data.anonymized_text,
     originalContactData: data.contact_data as ContactData,
+    language: (data.language as string) || 'de',
     createdAt,
   }
 }

@@ -62,10 +62,10 @@ export const guestNavItems: NavItem[] = [
 
 export const userMenuItems: NavItem[] = [
   {
-    href: '/chat',
-    label: 'Meine Chats',
+    href: '/mein-pex',
+    label: 'Mein Pex',
     authOnly: true,
-    iconPath: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+    iconPath: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z',
   },
   {
     href: '/cv-check',
