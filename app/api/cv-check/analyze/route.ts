@@ -81,11 +81,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // PDF text extraction using pdfjs-dist directly (worker disabled for server-side)
+    // PDF text extraction using pdfjs-dist directly
     let extractedText: string
     try {
       const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = ''
+      // pdfjs-dist v5 requires a non-empty workerSrc; resolve the bundled worker file
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')
+      }
 
       const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) })
       const pdfDoc = await loadingTask.promise
