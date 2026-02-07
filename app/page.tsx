@@ -1,9 +1,7 @@
-'use client'
-
-import { useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import FaqAccordion from '@/components/FaqAccordion'
 
 // ─── FAQ Data ───
 
@@ -60,13 +58,12 @@ const blogPosts = [
 // ─── Main Landing Page ───
 
 export default function LandingPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
-
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
 
       <Navbar />
 
+      <main>
       {/* ─── Hero Section ─── */}
       <section className="relative px-4 pt-16 sm:pt-24 pb-12 sm:pb-16 overflow-hidden">
         {/* Subtle background shapes */}
@@ -78,7 +75,7 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-[#E8E0D4] rounded-full text-xs sm:text-sm mb-6 sm:mb-8 shadow-sm">
             <span className="bg-[#E8930C] text-white text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0">NEU</span>
             <span className="text-[#4A5568]">Dein KI Job-Makler &ndash; jetzt verfügbar</span>
-            <Link href="/chat" className="text-[#1A1A2E] font-medium hover:underline flex-shrink-0">&rarr;</Link>
+            <Link href="/chat" className="text-[#1A1A2E] font-medium hover:underline flex-shrink-0" aria-label="Chat starten">&rarr;</Link>
           </div>
 
           {/* Main Headline */}
@@ -198,8 +195,8 @@ export default function LandingPage() {
                   <div className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF]">
                     z.B. Software Entwickler in Berlin...
                   </div>
-                  <Link href="/chat" className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] rounded-xl transition-colors flex items-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+                  <Link href="/chat" className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] rounded-xl transition-colors flex items-center" aria-label="Nachricht senden">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                   </Link>
                 </div>
               </div>
@@ -491,19 +488,7 @@ export default function LandingPage() {
             <p className="mt-4 text-[#6B7280]">Alles, was du über pexible wissen musst.</p>
           </div>
 
-          <div className="space-y-3">
-            {faqItems.map((item, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-[#E8E0D4]/60 overflow-hidden transition-all duration-300 hover:shadow-md hover:shadow-black/5">
-                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 text-left min-h-[44px]">
-                  <span className="font-semibold text-[#1A1A2E] text-sm sm:text-base pr-4">{item.q}</span>
-                  <svg className={`w-5 h-5 text-[#9CA3AF] flex-shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${openFaq === i ? 'max-h-96 pb-5' : 'max-h-0'}`}>
-                  <p className="px-6 text-sm text-[#6B7280] leading-relaxed">{item.a}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <FaqAccordion items={faqItems} />
         </div>
       </section>
 
@@ -528,8 +513,28 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+      </main>
 
       <Footer />
+
+      {/* FAQPage JSON-LD structured data for search engine rich snippets */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: faqItems.map((item) => ({
+              '@type': 'Question',
+              name: item.q,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: item.a,
+              },
+            })),
+          }),
+        }}
+      />
     </div>
   )
 }
