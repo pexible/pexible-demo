@@ -164,6 +164,7 @@ function OptimizeContent() {
 
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [tokenExpired, setTokenExpired] = useState(false)
   const [optimizationPhase, setOptimizationPhase] = useState<string | null>(null)
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResultData | null>(null)
   const [optimizationError, setOptimizationError] = useState<string | null>(null)
@@ -193,6 +194,9 @@ function OptimizeContent() {
 
         if (!res.ok) {
           const data = await res.json()
+          if (res.status === 410) {
+            setTokenExpired(true)
+          }
           setPaymentError(data.error || 'Fehler beim Erstellen der Zahlung.')
           return
         }
@@ -314,7 +318,15 @@ function OptimizeContent() {
 
         {paymentError && (
           <div className="bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl px-4 py-3 text-sm mb-4">
-            {paymentError}
+            <p>{paymentError}</p>
+            {tokenExpired && (
+              <Link
+                href="/cv-check"
+                className="inline-block mt-3 text-[#F5B731] hover:text-[#E8930C] font-medium transition-colors"
+              >
+                Zurück zum CV-Check →
+              </Link>
+            )}
           </div>
         )}
 
