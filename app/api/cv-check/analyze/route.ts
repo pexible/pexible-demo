@@ -128,7 +128,7 @@ export async function POST(req: Request) {
 
     // Store token for potential Stufe 2 optimization
     const cvTextToken = nanoid()
-    storeToken(cvTextToken, anonymizedText, contactData)
+    await storeToken(cvTextToken, anonymizedText, contactData)
 
     return NextResponse.json({
       ...analysisResult,
