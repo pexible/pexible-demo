@@ -29,6 +29,7 @@ export default function Navbar() {
 
   const isChat = pathname.startsWith('/chat')
   const isBlog = pathname.startsWith('/blog')
+  const isCvCheck = pathname.startsWith('/cv-check')
 
   const isActive = (path: string) => {
     if (path === '/') return isHome
@@ -46,6 +47,7 @@ export default function Navbar() {
   const loggedInDesktopLinks = (
     <div className="hidden md:flex items-center gap-8">
       <Link href="/" className={linkClass(isHome)}>Startseite</Link>
+      <Link href="/cv-check" className={linkClass(isCvCheck)}>CV-Check</Link>
       <Link href="/blog" className={linkClass(isBlog)}>Blog</Link>
       <Link href="/chat" className={linkClass(isChat)}>Meine Chats</Link>
     </div>
@@ -79,6 +81,7 @@ export default function Navbar() {
     return (
       <div className="md:hidden border-t border-[#E8E0D4]/60 bg-[#FDF8F0] px-4 py-3 space-y-1">
         <Link href="/" onClick={closeMobile} className={mobileLinkClass(isHome)}>Startseite</Link>
+        <Link href="/cv-check" onClick={closeMobile} className={mobileLinkClass(isCvCheck)}>CV-Check</Link>
         <Link href="/blog" onClick={closeMobile} className={mobileLinkClass(isBlog)}>Blog</Link>
         <Link href="/chat" onClick={closeMobile} className={mobileLinkClass(isChat)}>Meine Chats</Link>
         <div className="pt-3 border-t border-[#E8E0D4]/60 space-y-1">
@@ -104,9 +107,9 @@ export default function Navbar() {
   // ─── Logged-out: Marketing navigation ───
 
   const marketingLinks = [
+    { href: '/cv-check', label: 'CV-Check', isAnchor: false },
     { href: anchor('#funktionen'), label: 'Funktionen', isAnchor: true },
     { href: anchor('#so-funktionierts'), label: "So funktioniert\u2019s", isAnchor: true },
-    { href: anchor('#erfolgsgeschichten'), label: 'Erfolgsgeschichten', isAnchor: true },
     { href: '/blog', label: 'Blog', isAnchor: false },
   ]
 

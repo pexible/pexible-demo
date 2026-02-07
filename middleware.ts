@@ -32,7 +32,12 @@ export async function middleware(request: NextRequest) {
     pathname.match(/^\/chat\/.+/) ||   // /chat/{id} but NOT /chat
     pathname.startsWith('/upload') ||
     pathname.startsWith('/api/upload') ||
-    pathname.startsWith('/api/conversations')
+    pathname.startsWith('/api/conversations') ||
+    pathname.startsWith('/cv-check/result') ||      // viewing past results requires auth
+    pathname.startsWith('/api/cv-check/results') ||  // results API requires auth
+    pathname.startsWith('/api/cv-check/download') || // downloads require auth
+    pathname.startsWith('/api/cv-check/optimize') || // optimization requires auth
+    pathname.startsWith('/api/cv-check/create-checkout') // checkout requires auth
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
@@ -44,5 +49,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/chat/:path+', '/upload/:path*', '/api/upload/:path*', '/api/conversations/:path*'],
+  matcher: ['/chat/:path+', '/upload/:path*', '/api/upload/:path*', '/api/conversations/:path*', '/cv-check/result/:path*', '/cv-check/optimize/:path*', '/api/cv-check/results/:path*', '/api/cv-check/download/:path*', '/api/cv-check/optimize/:path*', '/api/cv-check/create-checkout/:path*'],
 }
