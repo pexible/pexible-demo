@@ -15,7 +15,7 @@ interface TokenEntry {
   createdAt: number
 }
 
-const TOKEN_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const TOKEN_TTL_MS = 60 * 60 * 1000 // 60 minutes
 const store = new Map<string, TokenEntry>()
 
 let lastCleanup = Date.now()
