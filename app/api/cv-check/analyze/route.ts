@@ -81,10 +81,13 @@ export async function POST(req: Request) {
       }
     }
 
-    // PDF text extraction using pdf-parse v2 class-based API
+    // PDF text extraction using pdf-parse v2
     let extractedText: string
     try {
       const { PDFParse } = await import('pdf-parse')
+      const { getPath } = await import('pdf-parse/worker')
+      PDFParse.setWorker(getPath())
+
       const pdf = new PDFParse({ data: new Uint8Array(buffer) })
       const textResult = await pdf.getText()
       extractedText = textResult.text
@@ -123,9 +126,9 @@ export async function POST(req: Request) {
       )
     }
 
-    // Store token for potential Stufe 2 optimization
+    // Store token for potential Stufe 2 optimization (including detected language)
     const cvTextToken = nanoid()
-    storeToken(cvTextToken, anonymizedText, contactData)
+    await storeToken(cvTextToken, anonymizedText, contactData, analysisResult.language || 'de')
 
     return NextResponse.json({
       ...analysisResult,

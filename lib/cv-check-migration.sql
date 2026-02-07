@@ -1,7 +1,29 @@
--- SQL migration for the cv_check_results table.
--- Run this in the Supabase SQL Editor to enable Stufe 2 persistence.
--- Stufe 1 (free analysis) works without this table.
+-- SQL migration for the cv_check tables.
+-- Run this in the Supabase SQL Editor.
 
+-- Temporary token store for CV text between analysis and optimization.
+-- Tokens are created anonymously during free analysis and consumed during paid optimization.
+CREATE TABLE IF NOT EXISTS cv_tokens (
+  token TEXT PRIMARY KEY,
+  anonymized_text TEXT NOT NULL,
+  contact_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  language TEXT NOT NULL DEFAULT 'de',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- If table already exists, add the language column:
+-- ALTER TABLE cv_tokens ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'de';
+
+-- Auto-delete expired tokens (older than 60 minutes)
+-- If using pg_cron, schedule: SELECT delete_expired_cv_tokens();
+CREATE OR REPLACE FUNCTION delete_expired_cv_tokens() RETURNS void AS $$
+  DELETE FROM cv_tokens WHERE created_at < now() - interval '60 minutes';
+$$ LANGUAGE sql;
+
+-- No RLS on cv_tokens — only accessed via admin client (service role)
+ALTER TABLE cv_tokens ENABLE ROW LEVEL SECURITY;
+
+-- Results table for Stufe 2 optimization
 CREATE TABLE IF NOT EXISTS cv_check_results (
   id TEXT PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

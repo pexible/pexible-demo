@@ -1,60 +1,68 @@
-// Temporary in-memory store for CV text tokens.
-// Tokens are short-lived (10 min TTL) and reference anonymized CV text
-// so users don't need to re-upload after purchasing optimization.
+// CV text token store backed by Supabase.
+// Tokens link the free analysis (Stufe 1) to the paid optimization (Stufe 2)
+// without requiring re-upload. Uses the admin client (bypasses RLS).
 //
-// Note: This is per-instance only. For distributed deployments, use Redis.
+// Requires the cv_tokens table — see lib/cv-check-migration.sql.
 
-interface TokenEntry {
+import { createAdminClient } from '@/lib/supabase/admin'
+
+interface ContactData {
+  name: string | null
+  email: string | null
+  phone: string | null
+  address: string | null
+}
+
+export interface TokenEntry {
   anonymizedText: string
-  originalContactData: {
-    name: string | null
-    email: string | null
-    phone: string | null
-    address: string | null
-  }
+  originalContactData: ContactData
+  language: string
   createdAt: number
 }
 
-const TOKEN_TTL_MS = 10 * 60 * 1000 // 10 minutes
-const store = new Map<string, TokenEntry>()
+const TOKEN_TTL_MS = 60 * 60 * 1000 // 60 minutes
 
-let lastCleanup = Date.now()
-
-function cleanup() {
-  const now = Date.now()
-  if (now - lastCleanup < 30_000) return
-  lastCleanup = now
-  for (const [key, entry] of store) {
-    if (now - entry.createdAt > TOKEN_TTL_MS) {
-      store.delete(key)
-    }
-  }
-}
-
-export function storeToken(
+export async function storeToken(
   token: string,
   anonymizedText: string,
-  originalContactData: TokenEntry['originalContactData']
-): void {
-  cleanup()
-  store.set(token, {
-    anonymizedText,
-    originalContactData,
-    createdAt: Date.now(),
+  originalContactData: ContactData,
+  language: string = 'de'
+): Promise<void> {
+  const supabase = createAdminClient()
+  await supabase.from('cv_tokens').upsert({
+    token,
+    anonymized_text: anonymizedText,
+    contact_data: originalContactData,
+    language,
+    created_at: new Date().toISOString(),
   })
 }
 
-export function retrieveToken(token: string): TokenEntry | null {
-  cleanup()
-  const entry = store.get(token)
-  if (!entry) return null
-  if (Date.now() - entry.createdAt > TOKEN_TTL_MS) {
-    store.delete(token)
+export async function retrieveToken(token: string): Promise<TokenEntry | null> {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from('cv_tokens')
+    .select('anonymized_text, contact_data, language, created_at')
+    .eq('token', token)
+    .single()
+
+  if (!data) return null
+
+  const createdAt = new Date(data.created_at).getTime()
+  if (Date.now() - createdAt > TOKEN_TTL_MS) {
+    await supabase.from('cv_tokens').delete().eq('token', token)
     return null
   }
-  return entry
+
+  return {
+    anonymizedText: data.anonymized_text,
+    originalContactData: data.contact_data as ContactData,
+    language: (data.language as string) || 'de',
+    createdAt,
+  }
 }
 
-export function deleteToken(token: string): void {
-  store.delete(token)
+export async function deleteToken(token: string): Promise<void> {
+  const supabase = createAdminClient()
+  await supabase.from('cv_tokens').delete().eq('token', token)
 }

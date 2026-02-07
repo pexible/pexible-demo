@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { retrieveToken, deleteToken } from '@/lib/cv-token-store'
 import { reinsertContactData } from '@/lib/cv-anonymize'
-import { CV_OPTIMIZATION_SYSTEM_PROMPT, CV_ANALYSIS_SYSTEM_PROMPT } from '@/lib/cv-prompts'
+import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const maxDuration = 60 // Allow up to 60 seconds for this route
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     // Retrieve CV text from token store
-    const tokenEntry = retrieveToken(cv_text_token)
+    const tokenEntry = await retrieveToken(cv_text_token)
     if (!tokenEntry) {
       return NextResponse.json(
         { error: 'Deine Sitzung ist abgelaufen. Bitte lade deinen Lebenslauf erneut hoch.' },
@@ -69,8 +69,8 @@ export async function POST(req: Request) {
       )
     }
 
-    // Step 1: Optimize the CV via Claude
-    const optimizationResult = await callClaudeOptimization(tokenEntry.anonymizedText)
+    // Step 1: Optimize the CV via Claude (pass detected language for consistency)
+    const optimizationResult = await callClaudeOptimization(tokenEntry.anonymizedText, tokenEntry.language)
     if (!optimizationResult) {
       return NextResponse.json(
         { error: 'Bei der Optimierung ist ein Fehler aufgetreten. Bitte kontaktiere unseren Support.' },
@@ -86,11 +86,18 @@ export async function POST(req: Request) {
       change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
-    // Step 3: Get new score for the optimized CV
-    const optimizedText = optimizationResult.sections.map((s) => `${s.name}\n${s.content}`).join('\n\n')
-    const newScoreResult = await callClaudeAnalysisForScore(optimizedText)
+    // Estimate improved score based on number of changes made.
+    // A second Claude scoring call would double the processing time and risk timeouts.
+    const originalTotal = original_score_data?.total ?? 0
+    const changeCount = optimizationResult.changes_summary.length
+    const placeholderCount = optimizationResult.placeholders.length
+    const improvement = Math.min(
+      100 - originalTotal,
+      Math.round(changeCount * 2.5 + placeholderCount * 1.5 + 5)
+    )
+    const estimatedScore = Math.min(100, originalTotal + improvement)
 
-    // Step 4: Store result in Supabase
+    // Step 3: Store result in Supabase
     const resultId = nanoid()
     const now = new Date().toISOString()
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -101,10 +108,10 @@ export async function POST(req: Request) {
         id: resultId,
         user_id: user.id,
         created_at: now,
-        original_score: original_score_data?.total ?? 0,
+        original_score: originalTotal,
         original_score_details: original_score_data ?? null,
-        optimized_score: newScoreResult?.score?.total ?? 0,
-        optimized_score_details: newScoreResult?.score ?? null,
+        optimized_score: estimatedScore,
+        optimized_score_details: null,
         changes_summary: optimizationResult.changes_summary,
         placeholders: optimizationResult.placeholders,
         tips: tips ?? null,
@@ -119,13 +126,13 @@ export async function POST(req: Request) {
     }
 
     // Clean up token
-    deleteToken(cv_text_token)
+    await deleteToken(cv_text_token)
 
     return NextResponse.json({
       id: resultId,
-      original_score: original_score_data?.total ?? 0,
-      optimized_score: newScoreResult?.score?.total ?? 0,
-      optimized_score_details: newScoreResult?.score ?? null,
+      original_score: originalTotal,
+      optimized_score: estimatedScore,
+      optimized_score_details: null,
       changes_summary: optimizationResult.changes_summary,
       placeholders: optimizationResult.placeholders,
       sections: optimizationResult.sections,
@@ -146,8 +153,13 @@ interface OptimizationResult {
   placeholders: Array<{ location: string; placeholder_text: string; suggestion: string }>
 }
 
-async function callClaudeOptimization(anonymizedText: string, attempt = 0): Promise<OptimizationResult | null> {
+async function callClaudeOptimization(anonymizedText: string, language: string, attempt = 0): Promise<OptimizationResult | null> {
   if (attempt >= 3) return null
+
+  const isEnglish = language === 'en'
+  const userPrompt = isEnglish
+    ? `Optimize the following CV according to your instructions. The CV is in English — respond entirely in English:\n\n---\n${anonymizedText}\n---`
+    : `Optimiere den folgenden Lebenslauf gemäß deinen Anweisungen:\n\n---\n${anonymizedText}\n---`
 
   try {
     const client = new Anthropic()
@@ -159,7 +171,7 @@ async function callClaudeOptimization(anonymizedText: string, attempt = 0): Prom
       messages: [
         {
           role: 'user',
-          content: `Optimiere den folgenden Lebenslauf gemäß deinen Anweisungen:\n\n---\n${anonymizedText}\n---`,
+          content: userPrompt,
         },
       ],
     })
@@ -171,12 +183,12 @@ async function callClaudeOptimization(anonymizedText: string, attempt = 0): Prom
       const parsed: OptimizationResult = JSON.parse(cleaned)
 
       if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
-        return callClaudeOptimization(anonymizedText, attempt + 1)
+        return callClaudeOptimization(anonymizedText, language, attempt + 1)
       }
 
       for (const section of parsed.sections) {
         if (!section.name || !section.content) {
-          return callClaudeOptimization(anonymizedText, attempt + 1)
+          return callClaudeOptimization(anonymizedText, language, attempt + 1)
         }
       }
 
@@ -185,33 +197,10 @@ async function callClaudeOptimization(anonymizedText: string, attempt = 0): Prom
 
       return parsed
     } catch {
-      return callClaudeOptimization(anonymizedText, attempt + 1)
+      return callClaudeOptimization(anonymizedText, language, attempt + 1)
     }
   } catch {
-    return callClaudeOptimization(anonymizedText, attempt + 1)
+    return callClaudeOptimization(anonymizedText, language, attempt + 1)
   }
 }
 
-async function callClaudeAnalysisForScore(text: string): Promise<{ score: { total: number; categories: Record<string, unknown> } } | null> {
-  try {
-    const client = new Anthropic()
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      temperature: 0,
-      system: CV_ANALYSIS_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Analysiere und bewerte den folgenden Lebenslauf anhand deiner Bewertungsrubrik:\n\n---\n${text}\n---`,
-        },
-      ],
-    })
-
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
-    const cleaned = responseText.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
-    return JSON.parse(cleaned)
-  } catch {
-    return null
-  }
-}

@@ -1,16 +1,30 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 
 type Step = 'email' | 'otp' | 'name'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#E8E0D4] border-t-[#F5B731] rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
+  )
+}
+
+function LoginContent() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/chat'
 
   const [step, setStep] = useState<Step>('email')
   const [email, setEmail] = useState('')
@@ -27,7 +41,7 @@ export default function LoginPage() {
   // Check if already logged in
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) router.push('/chat')
+      if (user) router.push(redirectTo)
     })
   }, [supabase, router])
 
@@ -127,7 +141,7 @@ export default function LoginPage() {
       }
     }
 
-    router.push('/chat')
+    router.push(redirectTo)
   }
 
   // ─── Save name for new users ───
@@ -162,7 +176,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/chat')
+    router.push(redirectTo)
   }
 
   // ─── OTP input handlers ───
@@ -434,7 +448,7 @@ export default function LoginPage() {
                     disabled={isLoading || firstName.trim().length < 2}
                     className="w-full py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] disabled:bg-[#E8E0D4] disabled:text-[#9CA3AF] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm"
                   >
-                    {isLoading ? 'Wird gespeichert...' : 'Weiter zum Chat'}
+                    {isLoading ? 'Wird gespeichert...' : 'Weiter'}
                   </button>
                 </form>
               </div>

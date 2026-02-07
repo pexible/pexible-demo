@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     }
 
     // Verify token exists and hasn't expired
-    const tokenEntry = retrieveToken(cv_text_token)
+    const tokenEntry = await retrieveToken(cv_text_token)
     if (!tokenEntry) {
       return NextResponse.json(
         { error: 'Deine Sitzung ist abgelaufen. Bitte lade deinen Lebenslauf erneut hoch.' },
