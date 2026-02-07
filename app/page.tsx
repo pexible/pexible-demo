@@ -63,7 +63,7 @@ export default function LandingPage() {
 
       <Navbar />
 
-      <main>
+      <main id="main-content">
       {/* ─── Hero Section ─── */}
       <section className="relative px-4 pt-16 sm:pt-24 pb-12 sm:pb-16 overflow-hidden">
         {/* Subtle background shapes */}

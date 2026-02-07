@@ -108,6 +108,7 @@ export default function BlogPage() {
 
       <Navbar />
 
+      <main id="main-content">
       {/* ─── Header ─── */}
       <section className="px-4 pt-16 sm:pt-24 pb-12">
         <div className="max-w-4xl mx-auto text-center">
@@ -199,6 +200,7 @@ export default function BlogPage() {
           </div>
         </div>
       </section>
+      </main>
 
       <Footer />
 

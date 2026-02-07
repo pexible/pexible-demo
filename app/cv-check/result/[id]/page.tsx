@@ -68,7 +68,7 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+      <main id="main-content" className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {loading || userLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-[#E8E0D4] border-t-[#F5B731] rounded-full animate-spin" />

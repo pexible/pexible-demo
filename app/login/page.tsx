@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Navbar from '@/components/Navbar'
 
 type Step = 'email' | 'otp' | 'name'
 
@@ -225,15 +226,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#FDF8F0] flex flex-col">
-      <nav className="px-4 sm:px-6 py-4">
-        <div className="max-w-6xl mx-auto">
-          <Link href="/" className="text-2xl font-bold italic tracking-tight text-[#1A1A2E]">
-            pexible
-          </Link>
-        </div>
-      </nav>
+      <Navbar variant="minimal" />
 
-      <div className="flex-1 flex items-center justify-center px-4 pb-16">
+      <main id="main-content" className="flex-1 flex items-center justify-center px-4 pb-16">
         <div className="w-full max-w-sm">
           {/* ─── Step 1: Email ─── */}
           {step === 'email' && (
@@ -446,7 +441,7 @@ export default function LoginPage() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }
