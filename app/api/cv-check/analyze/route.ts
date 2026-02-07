@@ -81,30 +81,16 @@ export async function POST(req: Request) {
       }
     }
 
-    // PDF text extraction using pdfjs-dist directly
+    // PDF text extraction using pdf-parse v2
     let extractedText: string
     try {
-      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs')
-      // pdfjs-dist v5 requires a non-empty workerSrc; resolve the bundled worker file
-      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')
-      }
+      const { PDFParse } = await import('pdf-parse')
+      const { getPath } = await import('pdf-parse/worker')
+      PDFParse.setWorker(getPath())
 
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(buffer) })
-      const pdfDoc = await loadingTask.promise
-      const textParts: string[] = []
-
-      for (let i = 1; i <= pdfDoc.numPages; i++) {
-        const page = await pdfDoc.getPage(i)
-        const content = await page.getTextContent()
-        const pageText = content.items
-          .filter((item) => 'str' in item)
-          .map((item) => (item as { str: string }).str)
-          .join(' ')
-        textParts.push(pageText)
-      }
-
-      extractedText = textParts.join('\n')
+      const pdf = new PDFParse({ data: new Uint8Array(buffer) })
+      const textResult = await pdf.getText()
+      extractedText = textResult.text
     } catch (pdfError: unknown) {
       const errorMessage = pdfError instanceof Error ? pdfError.message : ''
       if (errorMessage.toLowerCase().includes('password')) {
