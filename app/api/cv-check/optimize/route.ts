@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { retrieveToken, deleteToken } from '@/lib/cv-token-store'
 import { reinsertContactData } from '@/lib/cv-anonymize'
-import { CV_OPTIMIZATION_SYSTEM_PROMPT, CV_ANALYSIS_SYSTEM_PROMPT } from '@/lib/cv-prompts'
+import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const maxDuration = 60 // Allow up to 60 seconds for this route
@@ -86,11 +86,18 @@ export async function POST(req: Request) {
       change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
-    // Step 3: Get new score for the optimized CV
-    const optimizedText = optimizationResult.sections.map((s) => `${s.name}\n${s.content}`).join('\n\n')
-    const newScoreResult = await callClaudeAnalysisForScore(optimizedText)
+    // Estimate improved score based on number of changes made.
+    // A second Claude scoring call would double the processing time and risk timeouts.
+    const originalTotal = original_score_data?.total ?? 0
+    const changeCount = optimizationResult.changes_summary.length
+    const placeholderCount = optimizationResult.placeholders.length
+    const improvement = Math.min(
+      100 - originalTotal,
+      Math.round(changeCount * 2.5 + placeholderCount * 1.5 + 5)
+    )
+    const estimatedScore = Math.min(100, originalTotal + improvement)
 
-    // Step 4: Store result in Supabase
+    // Step 3: Store result in Supabase
     const resultId = nanoid()
     const now = new Date().toISOString()
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -101,10 +108,10 @@ export async function POST(req: Request) {
         id: resultId,
         user_id: user.id,
         created_at: now,
-        original_score: original_score_data?.total ?? 0,
+        original_score: originalTotal,
         original_score_details: original_score_data ?? null,
-        optimized_score: newScoreResult?.score?.total ?? 0,
-        optimized_score_details: newScoreResult?.score ?? null,
+        optimized_score: estimatedScore,
+        optimized_score_details: null,
         changes_summary: optimizationResult.changes_summary,
         placeholders: optimizationResult.placeholders,
         tips: tips ?? null,
@@ -123,9 +130,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       id: resultId,
-      original_score: original_score_data?.total ?? 0,
-      optimized_score: newScoreResult?.score?.total ?? 0,
-      optimized_score_details: newScoreResult?.score ?? null,
+      original_score: originalTotal,
+      optimized_score: estimatedScore,
+      optimized_score_details: null,
       changes_summary: optimizationResult.changes_summary,
       placeholders: optimizationResult.placeholders,
       sections: optimizationResult.sections,
@@ -192,26 +199,3 @@ async function callClaudeOptimization(anonymizedText: string, attempt = 0): Prom
   }
 }
 
-async function callClaudeAnalysisForScore(text: string): Promise<{ score: { total: number; categories: Record<string, unknown> } } | null> {
-  try {
-    const client = new Anthropic()
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      temperature: 0,
-      system: CV_ANALYSIS_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Analysiere und bewerte den folgenden Lebenslauf anhand deiner Bewertungsrubrik:\n\n---\n${text}\n---`,
-        },
-      ],
-    })
-
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
-    const cleaned = responseText.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
-    return JSON.parse(cleaned)
-  } catch {
-    return null
-  }
-}
