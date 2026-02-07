@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Script from 'next/script'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
@@ -84,8 +85,21 @@ const articles = [
 ]
 
 export const metadata = {
-  title: 'Blog - pexible | Karriere-Tipps & Arbeitsmarkt-Wissen',
-  description: 'Aktuelle Artikel zu Bewerbungstipps, Arbeitsmarkt-Trends und Karriere-Wissen. Bleibe informiert mit dem pexible Blog.',
+  title: 'Karriere-Tipps & Arbeitsmarkt-Wissen | pexible Blog',
+  description:
+    'Bewerbungstipps, Arbeitsmarkt-Trends und Karriere-Ratgeber. Expertenwissen fuer deine erfolgreiche Jobsuche. Jetzt lesen auf pexible.',
+  openGraph: {
+    title: 'Karriere-Tipps & Arbeitsmarkt-Wissen | pexible Blog',
+    description:
+      'Bewerbungstipps, Arbeitsmarkt-Trends und Karriere-Ratgeber. Expertenwissen fuer deine erfolgreiche Jobsuche.',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image' as const,
+    title: 'Karriere-Tipps & Arbeitsmarkt-Wissen | pexible Blog',
+    description:
+      'Bewerbungstipps, Arbeitsmarkt-Trends und Karriere-Ratgeber. Expertenwissen fuer deine erfolgreiche Jobsuche.',
+  },
 }
 
 export default function BlogPage() {
@@ -187,6 +201,70 @@ export default function BlogPage() {
       </section>
 
       <Footer />
+
+      {/* BlogPosting JSON-LD structured data for search engine rich snippets */}
+      <Script
+        id="blog-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: 'pexible Blog - Karriere-Tipps & Arbeitsmarkt-Wissen',
+            description:
+              'Bewerbungstipps, Arbeitsmarkt-Trends und Karriere-Ratgeber.',
+            url: 'https://pexible.de/blog',
+            mainEntity: {
+              '@type': 'ItemList',
+              itemListElement: articles.map((article, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                item: {
+                  '@type': 'BlogPosting',
+                  headline: article.title,
+                  description: article.excerpt,
+                  datePublished: article.date,
+                  author: {
+                    '@type': 'Organization',
+                    name: 'pexible',
+                  },
+                  publisher: {
+                    '@type': 'Organization',
+                    name: 'pexible',
+                    url: 'https://pexible.de',
+                  },
+                },
+              })),
+            },
+          }),
+        }}
+      />
+
+      {/* BreadcrumbList JSON-LD */}
+      <Script
+        id="breadcrumb-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Startseite',
+                item: 'https://pexible.de',
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: 'Blog',
+                item: 'https://pexible.de/blog',
+              },
+            ],
+          }),
+        }}
+      />
     </div>
   )
 }
