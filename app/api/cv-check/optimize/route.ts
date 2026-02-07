@@ -69,8 +69,8 @@ export async function POST(req: Request) {
       )
     }
 
-    // Step 1: Optimize the CV via Claude
-    const optimizationResult = await callClaudeOptimization(tokenEntry.anonymizedText)
+    // Step 1: Optimize the CV via Claude (pass detected language for consistency)
+    const optimizationResult = await callClaudeOptimization(tokenEntry.anonymizedText, tokenEntry.language)
     if (!optimizationResult) {
       return NextResponse.json(
         { error: 'Bei der Optimierung ist ein Fehler aufgetreten. Bitte kontaktiere unseren Support.' },
@@ -153,8 +153,13 @@ interface OptimizationResult {
   placeholders: Array<{ location: string; placeholder_text: string; suggestion: string }>
 }
 
-async function callClaudeOptimization(anonymizedText: string, attempt = 0): Promise<OptimizationResult | null> {
+async function callClaudeOptimization(anonymizedText: string, language: string, attempt = 0): Promise<OptimizationResult | null> {
   if (attempt >= 3) return null
+
+  const isEnglish = language === 'en'
+  const userPrompt = isEnglish
+    ? `Optimize the following CV according to your instructions. The CV is in English — respond entirely in English:\n\n---\n${anonymizedText}\n---`
+    : `Optimiere den folgenden Lebenslauf gemäß deinen Anweisungen:\n\n---\n${anonymizedText}\n---`
 
   try {
     const client = new Anthropic()
@@ -166,7 +171,7 @@ async function callClaudeOptimization(anonymizedText: string, attempt = 0): Prom
       messages: [
         {
           role: 'user',
-          content: `Optimiere den folgenden Lebenslauf gemäß deinen Anweisungen:\n\n---\n${anonymizedText}\n---`,
+          content: userPrompt,
         },
       ],
     })
@@ -178,12 +183,12 @@ async function callClaudeOptimization(anonymizedText: string, attempt = 0): Prom
       const parsed: OptimizationResult = JSON.parse(cleaned)
 
       if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
-        return callClaudeOptimization(anonymizedText, attempt + 1)
+        return callClaudeOptimization(anonymizedText, language, attempt + 1)
       }
 
       for (const section of parsed.sections) {
         if (!section.name || !section.content) {
-          return callClaudeOptimization(anonymizedText, attempt + 1)
+          return callClaudeOptimization(anonymizedText, language, attempt + 1)
         }
       }
 
@@ -192,10 +197,10 @@ async function callClaudeOptimization(anonymizedText: string, attempt = 0): Prom
 
       return parsed
     } catch {
-      return callClaudeOptimization(anonymizedText, attempt + 1)
+      return callClaudeOptimization(anonymizedText, language, attempt + 1)
     }
   } catch {
-    return callClaudeOptimization(anonymizedText, attempt + 1)
+    return callClaudeOptimization(anonymizedText, language, attempt + 1)
   }
 }
 

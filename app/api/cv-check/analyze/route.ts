@@ -126,9 +126,9 @@ export async function POST(req: Request) {
       )
     }
 
-    // Store token for potential Stufe 2 optimization
+    // Store token for potential Stufe 2 optimization (including detected language)
     const cvTextToken = nanoid()
-    await storeToken(cvTextToken, anonymizedText, contactData)
+    await storeToken(cvTextToken, anonymizedText, contactData, analysisResult.language || 'de')
 
     return NextResponse.json({
       ...analysisResult,

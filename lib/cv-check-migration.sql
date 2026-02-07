@@ -7,8 +7,12 @@ CREATE TABLE IF NOT EXISTS cv_tokens (
   token TEXT PRIMARY KEY,
   anonymized_text TEXT NOT NULL,
   contact_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  language TEXT NOT NULL DEFAULT 'de',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- If table already exists, add the language column:
+-- ALTER TABLE cv_tokens ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'de';
 
 -- Auto-delete expired tokens (older than 60 minutes)
 -- If using pg_cron, schedule: SELECT delete_expired_cv_tokens();
