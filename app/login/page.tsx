@@ -141,7 +141,9 @@ function LoginContent() {
       }
     }
 
-    router.push(redirectTo)
+    // Full-page navigation to ensure fresh auth cookies are sent
+    // (router.push uses cached RSC state where auth is not yet recognized)
+    window.location.href = redirectTo
   }
 
   // ─── Save name for new users ───
@@ -176,7 +178,7 @@ function LoginContent() {
       return
     }
 
-    router.push(redirectTo)
+    window.location.href = redirectTo
   }
 
   // ─── OTP input handlers ───
