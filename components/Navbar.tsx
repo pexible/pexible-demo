@@ -105,6 +105,7 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const logoHref = user ? '/mein-pex' : '/'
   const isHome = pathname === '/'
   const userName = user?.firstName || ''
 
@@ -217,7 +218,7 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
             </svg>
             <span className="hidden sm:inline">{backLabel}</span>
           </Link>
-          <Link href="/" className="text-xl font-bold italic tracking-tight text-[#1A1A2E] ml-auto">
+          <Link href={logoHref} className="text-xl font-bold italic tracking-tight text-[#1A1A2E] ml-auto">
             pexible
           </Link>
         </div>
@@ -246,7 +247,7 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
           <div className="flex items-center justify-between h-16">
             {/* ── Logo ── */}
             <Link
-              href="/"
+              href={logoHref}
               className="text-2xl font-bold italic tracking-tight text-[#1A1A2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2 rounded-lg"
             >
               pexible
@@ -416,7 +417,7 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 h-16 border-b border-[#E8E0D4]/60">
-            <Link href="/" onClick={closeMobile} className="text-xl font-bold italic tracking-tight text-[#1A1A2E]">
+            <Link href={logoHref} onClick={closeMobile} className="text-xl font-bold italic tracking-tight text-[#1A1A2E]">
               pexible
             </Link>
             <button
