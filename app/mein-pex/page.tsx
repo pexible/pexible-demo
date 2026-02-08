@@ -148,7 +148,7 @@ function DashboardView({ userName }: { userName: string }) {
 
   const tabs: Array<{ key: Tab; label: string; count: number }> = [
     { key: 'all', label: 'Alle', count: totalConvos + totalCvChecks },
-    { key: 'jobs', label: 'Jobsuche', count: totalConvos },
+    { key: 'jobs', label: totalConvos === 1 ? 'Jobsuche' : 'Jobsuchen', count: totalConvos },
     { key: 'cv', label: 'CV-Checks', count: totalCvChecks },
   ]
 
