@@ -322,30 +322,48 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
 
                       {/* Personal area links */}
                       <div className="py-1">
-                        {userMenuItems.map((item) => (
-                          <Link
-                            key={item.href + item.label}
-                            href={item.href}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#4A5568] hover:text-[#1A1A2E] hover:bg-[#F9F5EE] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F5B731]"
-                          >
-                            <NavIcon path={item.iconPath} className="w-4 h-4" />
-                            {item.label}
-                          </Link>
-                        ))}
+                        {userMenuItems.map((item) => {
+                          const active = isActive(item.href)
+                          return (
+                            <Link
+                              key={item.href + item.label}
+                              href={item.href}
+                              className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F5B731] ${
+                                active
+                                  ? 'text-[#1A1A2E] font-medium bg-[#F9F5EE]'
+                                  : 'text-[#4A5568] hover:text-[#1A1A2E] hover:bg-[#F9F5EE]'
+                              }`}
+                              {...(active ? { 'aria-current': 'page' as const } : {})}
+                            >
+                              <NavIcon path={item.iconPath} className={`w-4 h-4 ${active ? 'text-[#F5B731]' : ''}`} />
+                              {item.label}
+                              {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#F5B731]" />}
+                            </Link>
+                          )
+                        })}
                       </div>
 
                       {/* Settings & help */}
                       <div className="border-t border-[#E8E0D4]/60 py-1">
-                        {userMenuSecondaryItems.map((item) => (
-                          <Link
-                            key={item.href + item.label}
-                            href={item.href}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#4A5568] hover:text-[#1A1A2E] hover:bg-[#F9F5EE] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F5B731]"
-                          >
-                            <NavIcon path={item.iconPath} className="w-4 h-4" />
-                            {item.label}
-                          </Link>
-                        ))}
+                        {userMenuSecondaryItems.map((item) => {
+                          const active = isActive(item.href)
+                          return (
+                            <Link
+                              key={item.href + item.label}
+                              href={item.href}
+                              className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F5B731] ${
+                                active
+                                  ? 'text-[#1A1A2E] font-medium bg-[#F9F5EE]'
+                                  : 'text-[#4A5568] hover:text-[#1A1A2E] hover:bg-[#F9F5EE]'
+                              }`}
+                              {...(active ? { 'aria-current': 'page' as const } : {})}
+                            >
+                              <NavIcon path={item.iconPath} className={`w-4 h-4 ${active ? 'text-[#F5B731]' : ''}`} />
+                              {item.label}
+                              {active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#F5B731]" />}
+                            </Link>
+                          )
+                        })}
                       </div>
 
                       {/* Sign out */}
