@@ -236,44 +236,84 @@ function sanitizeJson(text: string): string {
     .replace(/,\s*\]/g, ']')    // trailing comma before ]
 }
 
-// Extract the outermost JSON object from text that may include preamble (e.g.
-// Claude's self-check reasoning before the actual JSON output).
-function extractJson(text: string): string | null {
-  // First try: strip markdown fences and parse directly
-  const cleaned = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
-  try {
-    JSON.parse(cleaned)
-    return cleaned
-  } catch {
-    // Try sanitized version
-    const sanitized = sanitizeJson(cleaned)
-    try {
-      JSON.parse(sanitized)
-      return sanitized
-    } catch {
-      // Fall through to bracket matching
+// Fix literal newlines/tabs inside JSON string values.
+// JSON spec requires these to be escaped as \n, \t etc.
+function repairJsonStrings(text: string): string {
+  let result = ''
+  let inString = false
+  let escaped = false
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+
+    if (escaped) {
+      result += ch
+      escaped = false
+      continue
     }
+
+    if (ch === '\\') {
+      escaped = true
+      result += ch
+      continue
+    }
+
+    if (ch === '"') {
+      inString = !inString
+      result += ch
+      continue
+    }
+
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue }
+      if (ch === '\r') { result += '\\r'; continue }
+      if (ch === '\t') { result += '\\t'; continue }
+    }
+
+    result += ch
   }
 
-  // Second try: find the first '{' and match to the last '}'
+  return result
+}
+
+function tryParse(text: string): boolean {
+  try {
+    JSON.parse(text)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Extract the outermost JSON object from text that may include markdown
+// fences, preamble text, or have common LLM-generated JSON issues.
+function extractJson(text: string): string | null {
+  // Step 1: Strip markdown fences (handle variable whitespace around them)
+  const cleaned = text
+    .replace(/^[\s\n]*```(?:json)?[\s\n]*/i, '')
+    .replace(/[\s\n]*```[\s\n]*$/i, '')
+    .trim()
+
+  if (tryParse(cleaned)) return cleaned
+  if (tryParse(sanitizeJson(cleaned))) return sanitizeJson(cleaned)
+
+  // Step 2: Bracket matching (handles preamble text before JSON)
   const firstBrace = text.indexOf('{')
   const lastBrace = text.lastIndexOf('}')
   if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null
 
   const candidate = text.slice(firstBrace, lastBrace + 1)
-  try {
-    JSON.parse(candidate)
-    return candidate
-  } catch {
-    // Try sanitized version
-    const sanitized = sanitizeJson(candidate)
-    try {
-      JSON.parse(sanitized)
-      return sanitized
-    } catch {
-      return null
-    }
-  }
+  if (tryParse(candidate)) return candidate
+  if (tryParse(sanitizeJson(candidate))) return sanitizeJson(candidate)
+
+  // Step 3: Repair literal newlines/tabs inside JSON string values
+  const repaired = repairJsonStrings(candidate)
+  if (tryParse(repaired)) return repaired
+
+  const repairedAndSanitized = sanitizeJson(repaired)
+  if (tryParse(repairedAndSanitized)) return repairedAndSanitized
+
+  return null
 }
 
 async function callClaudeOptimization(
@@ -311,11 +351,12 @@ async function callClaudeOptimization(
         continue
       }
 
-      // Extract JSON — handles preamble text (self-check) before JSON
+      // Extract JSON — handles fences, preamble, literal newlines in strings
       const jsonStr = extractJson(rawText)
       if (!jsonStr) {
-        const preview = rawText.slice(0, 200).replace(/\n/g, '\\n')
-        onAttempt?.(attempt + 1, maxAttempts, `No valid JSON found. Response starts with: ${preview}`)
+        const start = rawText.slice(0, 120).replace(/\n/g, '\\n')
+        const end = rawText.slice(-120).replace(/\n/g, '\\n')
+        onAttempt?.(attempt + 1, maxAttempts, `No valid JSON. Start: ${start} ... End: ${end}`)
         continue
       }
 
