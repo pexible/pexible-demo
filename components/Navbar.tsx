@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@/lib/hooks/useUser'
-import { serviceNavItems, guestNavItems, userMenuItems, type NavItem } from '@/lib/navigation'
+import { serviceNavItems, guestNavItems, userMenuItems, userMenuSecondaryItems, type NavItem } from '@/lib/navigation'
 
 // ─── Types ───
 
@@ -323,6 +323,20 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
                         ))}
                       </div>
 
+                      {/* Settings & help */}
+                      <div className="border-t border-[#E8E0D4]/60 py-1">
+                        {userMenuSecondaryItems.map((item) => (
+                          <Link
+                            key={item.href + item.label}
+                            href={item.href}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#4A5568] hover:text-[#1A1A2E] hover:bg-[#F9F5EE] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F5B731]"
+                          >
+                            <NavIcon path={item.iconPath} className="w-4 h-4" />
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+
                       {/* Sign out */}
                       <div className="border-t border-[#E8E0D4]/60 py-1">
                         <button
@@ -469,6 +483,26 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
 
                 <ul className="space-y-1" role="list">
                   {userMenuItems.map((item) => {
+                    const active = isActive(item.href)
+                    return (
+                      <li key={item.href + item.label}>
+                        <Link
+                          href={item.href}
+                          onClick={closeMobile}
+                          className={mobileLinkClass(active)}
+                          {...(active ? { 'aria-current': 'page' as const } : {})}
+                        >
+                          <NavIcon path={item.iconPath} />
+                          {item.label}
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+
+                <div className="my-3 border-t border-[#E8E0D4]/60" />
+                <ul className="space-y-1" role="list">
+                  {userMenuSecondaryItems.map((item) => {
                     const active = isActive(item.href)
                     return (
                       <li key={item.href + item.label}>
