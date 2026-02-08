@@ -10,7 +10,7 @@ import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { analyzeCV } from '@/lib/cv-analysis'
 
-export const maxDuration = 60 // Allow up to 60 seconds for this route
+export const maxDuration = 120 // Allow up to 120 seconds (optimization + re-analysis)
 
 export async function POST(req: Request) {
   const ip = getClientIp(req)
