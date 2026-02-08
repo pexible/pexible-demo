@@ -108,6 +108,7 @@ function OptimizationProgress({ phase }: { phase: string }) {
   const phases = [
     { key: 'optimizing', label: 'Dein Lebenslauf wird optimiert...' },
     { key: 'formulating', label: 'Formulierungen werden überarbeitet...' },
+    { key: 'quality', label: 'Qualität wird geprüft...' },
     { key: 'creating', label: 'Dokumente werden erstellt...' },
     { key: 'finishing', label: 'Fast fertig...' },
   ]
@@ -160,22 +161,22 @@ function OptimizeContent() {
   const { user, isLoading: userLoading } = useUser()
 
   const token = searchParams.get('token')
-  const originalScore = parseInt(searchParams.get('score') || '0', 10)
+  const originalAtsScore = parseInt(searchParams.get('ats') || '0', 10)
+  const originalContentScore = parseInt(searchParams.get('content') || '0', 10)
 
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [tokenExpired, setTokenExpired] = useState(false)
   const [optimizationPhase, setOptimizationPhase] = useState<string | null>(null)
-  const [optimizationResult, setOptimizationResult] = useState<OptimizationResultData | null>(null)
   const [optimizationError, setOptimizationError] = useState<string | null>(null)
 
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!userLoading && !user) {
-      const returnUrl = `/cv-check/optimize?token=${token}&score=${originalScore}`
+      const returnUrl = `/cv-check/optimize?token=${token}&ats=${originalAtsScore}&content=${originalContentScore}`
       router.push(`/login?redirect=${encodeURIComponent(returnUrl)}`)
     }
-  }, [user, userLoading, router, token, originalScore])
+  }, [user, userLoading, router, token, originalAtsScore, originalContentScore])
 
   // Create checkout session when user is authenticated
   useEffect(() => {
@@ -188,7 +189,7 @@ function OptimizeContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             cv_text_token: token,
-            original_score: { total: originalScore },
+            original_score: { ats: originalAtsScore, content: originalContentScore },
           }),
         })
 
@@ -209,15 +210,16 @@ function OptimizeContent() {
     }
 
     createCheckout()
-  }, [user, token, originalScore, clientSecret])
+  }, [user, token, originalAtsScore, originalContentScore, clientSecret])
 
   const handlePaymentSuccess = useCallback(async (paymentIntentId: string) => {
     setOptimizationPhase('optimizing')
 
     const phaseTimers: NodeJS.Timeout[] = []
     phaseTimers.push(setTimeout(() => setOptimizationPhase('formulating'), 5000))
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('creating'), 15000))
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('finishing'), 25000))
+    phaseTimers.push(setTimeout(() => setOptimizationPhase('quality'), 15000))
+    phaseTimers.push(setTimeout(() => setOptimizationPhase('creating'), 25000))
+    phaseTimers.push(setTimeout(() => setOptimizationPhase('finishing'), 35000))
 
     try {
       const res = await fetch('/api/cv-check/optimize', {
@@ -226,7 +228,7 @@ function OptimizeContent() {
         body: JSON.stringify({
           payment_intent_id: paymentIntentId,
           cv_text_token: token,
-          original_score_data: { total: originalScore },
+          original_score_data: { ats: originalAtsScore, content: originalContentScore },
         }),
       })
 
@@ -239,15 +241,15 @@ function OptimizeContent() {
         return
       }
 
-      const data: OptimizationResultData = await res.json()
-      // Redirect to persistent result page instead of showing inline
+      const data = await res.json()
+      // Redirect to persistent result page
       router.push(`/cv-check/result/${data.id}`)
     } catch {
       phaseTimers.forEach(clearTimeout)
       setOptimizationError('Netzwerkfehler bei der Optimierung.')
       setOptimizationPhase(null)
     }
-  }, [token, originalScore])
+  }, [token, originalAtsScore, originalContentScore, router])
 
   if (userLoading) {
     return (
@@ -266,11 +268,6 @@ function OptimizeContent() {
         </Link>
       </div>
     )
-  }
-
-  // Show optimization results
-  if (optimizationResult) {
-    return <OptimizationResults data={optimizationResult} originalScore={originalScore} />
   }
 
   // Show optimization progress
@@ -352,135 +349,6 @@ function OptimizeContent() {
             <div className="w-6 h-6 border-2 border-white/20 border-t-[#F5B731] rounded-full animate-spin" />
           </div>
         ) : null}
-      </div>
-    </div>
-  )
-}
-
-// --- Optimization Results Component ---
-
-interface OptimizationResultData {
-  id: string
-  original_score: number
-  optimized_score: number
-  changes_summary: Array<{ before: string; after: string; reason: string }>
-  placeholders: Array<{ location: string; placeholder_text: string; suggestion: string }>
-  sections: Array<{ name: string; content: string }>
-}
-
-function OptimizationResults({ data, originalScore }: { data: OptimizationResultData; originalScore: number }) {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return '#22C55E'
-    if (score >= 70) return '#EAB308'
-    if (score >= 50) return '#F97316'
-    return '#EF4444'
-  }
-
-  return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
-      {/* Score Comparison */}
-      <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
-        <h2 className="text-lg font-bold text-[#1A1A2E] mb-6 text-center">Score-Verbesserung</h2>
-        <div className="flex items-center justify-center gap-6 sm:gap-10">
-          <div className="text-center">
-            <span className="text-sm text-[#9CA3AF] block mb-1">Vorher</span>
-            <span className="text-3xl sm:text-4xl font-extrabold" style={{ color: getScoreColor(originalScore) }}>
-              {originalScore}
-            </span>
-          </div>
-          <svg className="w-8 h-8 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
-          <div className="text-center">
-            <span className="text-sm text-[#9CA3AF] block mb-1">Nachher</span>
-            <span className="text-3xl sm:text-4xl font-extrabold" style={{ color: getScoreColor(data.optimized_score) }}>
-              {data.optimized_score}
-            </span>
-          </div>
-        </div>
-        <p className="text-center text-sm text-[#9CA3AF] mt-3">
-          +{data.optimized_score - originalScore} Punkte Verbesserung
-        </p>
-      </div>
-
-      {/* Changes Summary */}
-      {data.changes_summary.length > 0 && (
-        <div>
-          <h2 className="text-lg font-bold text-[#1A1A2E] mb-4">Top-Änderungen</h2>
-          <div className="space-y-3">
-            {data.changes_summary.slice(0, 5).map((change, i) => (
-              <div key={i} className="bg-white rounded-xl border border-[#E8E0D4]/80 p-4 sm:p-5">
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="text-red-500 text-sm shrink-0 mt-0.5">✗</span>
-                    <p className="text-sm text-[#4A5568] line-through">{change.before}</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 text-sm shrink-0 mt-0.5">✓</span>
-                    <p className="text-sm text-[#1A1A2E] font-medium">{change.after}</p>
-                  </div>
-                </div>
-                <p className="text-xs text-[#9CA3AF] mt-2">{change.reason}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Placeholders Info */}
-      {data.placeholders.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 sm:p-5">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-blue-900">
-                {data.placeholders.length} Stellen zum Ergänzen
-              </p>
-              <p className="text-xs text-blue-700 mt-1">
-                Wir haben Stellen markiert, an denen du konkrete Zahlen ergänzen kannst.
-                Suche im Dokument nach [Bitte ergänzen: ...]
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Download Buttons */}
-      <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
-        <h2 className="text-lg font-bold text-[#1A1A2E] mb-4 text-center">Dokumente herunterladen</h2>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <a
-            href={`/api/cv-check/download/${data.id}/pdf`}
-            className="inline-flex items-center gap-2 bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold text-sm px-6 py-3 rounded-xl transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            PDF herunterladen
-          </a>
-          <a
-            href={`/api/cv-check/download/${data.id}/docx`}
-            className="inline-flex items-center gap-2 bg-[#1A1A2E] hover:bg-[#2D2D44] text-white font-semibold text-sm px-6 py-3 rounded-xl transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Word-Dokument herunterladen
-          </a>
-        </div>
-        <p className="text-xs text-[#9CA3AF] text-center mt-3">Download verfügbar für 24 Stunden</p>
-      </div>
-
-      {/* Cross-selling */}
-      <div className="text-center">
-        <Link
-          href="/jobs"
-          className="text-sm font-medium text-[#F5B731] hover:text-[#E8930C] transition-colors"
-        >
-          Jetzt passende Jobs finden →
-        </Link>
       </div>
     </div>
   )

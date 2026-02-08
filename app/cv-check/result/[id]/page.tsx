@@ -6,12 +6,16 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useUser } from '@/lib/hooks/useUser'
+import { getScoreColor, parseScoreData } from '@/lib/cv-score-utils'
+import type { ParsedScoreData } from '@/lib/cv-score-utils'
 
 interface CvCheckResult {
   id: string
   created_at: string
   original_score: number
+  original_score_details: { ats?: number; content?: number } | null
   optimized_score: number
+  optimized_score_details: { ats?: number; content?: number } | null
   changes_summary: Array<{ before: string; after: string; reason: string }>
   placeholders: Array<{ location: string; placeholder_text: string; suggestion: string }>
   tips: Array<{ title: string; description: string; category: string; impact: string }>
@@ -20,11 +24,110 @@ interface CvCheckResult {
   files_expire_at: string
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 80) return '#22C55E'
-  if (score >= 70) return '#EAB308'
-  if (score >= 50) return '#F97316'
-  return '#EF4444'
+function ScoreComparison({
+  label,
+  before,
+  after,
+}: {
+  label: string
+  before: number
+  after: number
+}) {
+  return (
+    <div className="flex flex-col items-center">
+      <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">{label}</span>
+      <div className="flex items-center gap-4 sm:gap-6">
+        <div className="text-center">
+          <span className="text-xs text-[#9CA3AF] block mb-1">Vorher</span>
+          <span className="text-2xl sm:text-3xl font-extrabold" style={{ color: getScoreColor(before) }}>
+            {before}
+          </span>
+        </div>
+        <svg className="w-6 h-6 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+        <div className="text-center">
+          <span className="text-xs text-[#9CA3AF] block mb-1">Nachher</span>
+          <span className="text-2xl sm:text-3xl font-extrabold" style={{ color: getScoreColor(after) }}>
+            {after}
+          </span>
+        </div>
+      </div>
+      {after > before && (
+        <span className="text-xs text-green-600 font-medium mt-1">+{after - before} Punkte</span>
+      )}
+    </div>
+  )
+}
+
+function ScoreSection({ scores }: { scores: ParsedScoreData }) {
+  if (scores.kind === 'legacy') {
+    // Legacy: single score ring, "Gesamt-Score" label
+    const original = scores.originalScore
+    const optimized = scores.optimizedScore
+
+    if (optimized != null) {
+      return (
+        <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
+          <div className="flex items-center justify-center">
+            <ScoreComparison label="Gesamt-Score" before={original} after={optimized} />
+          </div>
+        </div>
+      )
+    }
+
+    // Legacy without optimization (shouldn't happen on result page, but safe fallback)
+    return (
+      <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
+        <div className="flex flex-col items-center">
+          <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">Gesamt-Score</span>
+          <span className="text-4xl font-extrabold" style={{ color: getScoreColor(original) }}>
+            {original}
+          </span>
+          <span className="text-xs text-[#9CA3AF] mt-1">von 100</span>
+        </div>
+      </div>
+    )
+  }
+
+  // New two-dimensional scores
+  const hasOptimized = scores.optimizedAts != null && scores.optimizedContent != null
+
+  if (hasOptimized) {
+    return (
+      <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
+          <ScoreComparison label="ATS-Score" before={scores.originalAts} after={scores.optimizedAts!} />
+          <div className="hidden sm:block w-px h-20 bg-[#E8E0D4]" />
+          <ScoreComparison label="Inhalts-Score" before={scores.originalContent} after={scores.optimizedContent!} />
+        </div>
+      </div>
+    )
+  }
+
+  // New format but re-analysis failed — show original scores only with note
+  return (
+    <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
+        <div className="flex flex-col items-center">
+          <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">ATS-Score (vorher)</span>
+          <span className="text-3xl font-extrabold" style={{ color: getScoreColor(scores.originalAts) }}>
+            {scores.originalAts}
+          </span>
+        </div>
+        <div className="hidden sm:block w-px h-20 bg-[#E8E0D4]" />
+        <div className="flex flex-col items-center">
+          <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">Inhalts-Score (vorher)</span>
+          <span className="text-3xl font-extrabold" style={{ color: getScoreColor(scores.originalContent) }}>
+            {scores.originalContent}
+          </span>
+        </div>
+      </div>
+      <p className="text-xs text-[#9CA3AF] text-center mt-4">
+        Die Nachher-Scores konnten für dieses Ergebnis leider nicht ermittelt werden.
+      </p>
+    </div>
+  )
 }
 
 export default function CvCheckResultPage({ params }: { params: Promise<{ id: string }> }) {
@@ -64,6 +167,8 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
     fetchResult()
   }, [user, id])
 
+  const scores = result ? parseScoreData(result) : null
+
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
       <Navbar />
@@ -82,7 +187,7 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
               Zurück zum Lebenslauf-Check
             </Link>
           </div>
-        ) : result ? (
+        ) : result && scores ? (
           <div className="space-y-6 animate-fade-in">
             {/* Header */}
             <div className="text-center mb-8">
@@ -98,26 +203,8 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
               </p>
             </div>
 
-            {/* Score Comparison */}
-            <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
-              <div className="flex items-center justify-center gap-6 sm:gap-10">
-                <div className="text-center">
-                  <span className="text-sm text-[#9CA3AF] block mb-1">Vorher</span>
-                  <span className="text-3xl sm:text-4xl font-extrabold" style={{ color: getScoreColor(result.original_score) }}>
-                    {result.original_score}
-                  </span>
-                </div>
-                <svg className="w-8 h-8 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-                <div className="text-center">
-                  <span className="text-sm text-[#9CA3AF] block mb-1">Nachher</span>
-                  <span className="text-3xl sm:text-4xl font-extrabold" style={{ color: getScoreColor(result.optimized_score) }}>
-                    {result.optimized_score}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Score Section — handles legacy and new format */}
+            <ScoreSection scores={scores} />
 
             {/* Changes */}
             {result.changes_summary?.length > 0 && (

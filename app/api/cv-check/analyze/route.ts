@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { nanoid } from 'nanoid'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { anonymizeCvText } from '@/lib/cv-anonymize'
 import { storeToken } from '@/lib/cv-token-store'
-import { CV_ANALYSIS_SYSTEM_PROMPT } from '@/lib/cv-prompts'
+import { analyzeCV } from '@/lib/cv-analysis'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46, 0x2d] // %PDF-
@@ -116,8 +115,8 @@ export async function POST(req: Request) {
     // Anonymize before sending to LLM
     const { anonymizedText, contactData } = anonymizeCvText(extractedText)
 
-    // Call Claude for analysis
-    const analysisResult = await callClaudeAnalysis(anonymizedText)
+    // Call Claude for analysis (shared module)
+    const analysisResult = await analyzeCV(anonymizedText)
 
     if (!analysisResult) {
       return NextResponse.json(
@@ -140,119 +139,4 @@ export async function POST(req: Request) {
       { status: 500 }
     )
   }
-}
-
-interface ScoreDetail {
-  score: number
-  max: number
-  reasoning: string
-}
-
-interface CategoryScore {
-  score: number
-  max: number
-  details: Record<string, ScoreDetail>
-}
-
-interface AnalysisResult {
-  language: string
-  score: {
-    total: number
-    categories: Record<string, CategoryScore>
-  }
-  tips: Array<{
-    title: string
-    description: string
-    category: string
-    impact: string
-  }>
-}
-
-async function callClaudeAnalysis(anonymizedText: string, attempt = 0): Promise<AnalysisResult | null> {
-  if (attempt >= 3) return null
-
-  try {
-    const client = new Anthropic()
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      temperature: 0,
-      system: CV_ANALYSIS_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Analysiere und bewerte den folgenden Lebenslauf anhand deiner Bewertungsrubrik:\n\n---\n${anonymizedText}\n---`,
-        },
-      ],
-    })
-
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
-
-    // Parse JSON response
-    let parsed: AnalysisResult
-    try {
-      // Strip potential markdown code fences
-      const cleaned = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
-      parsed = JSON.parse(cleaned)
-    } catch {
-      // Retry with hint to return only JSON
-      return callClaudeAnalysis(anonymizedText, attempt + 1)
-    }
-
-    // Validate and fix score consistency
-    parsed = validateAndFixScores(parsed)
-
-    // Validate tips
-    if (!Array.isArray(parsed.tips) || parsed.tips.length !== 3) {
-      return callClaudeAnalysis(anonymizedText, attempt + 1)
-    }
-
-    const validCategories = ['ats_parsing', 'content_quality', 'completeness', 'formal_quality', 'overall_impression']
-    for (const tip of parsed.tips) {
-      if (!tip.title || !tip.description || !tip.category || !tip.impact) {
-        return callClaudeAnalysis(anonymizedText, attempt + 1)
-      }
-      if (!validCategories.includes(tip.category)) {
-        tip.category = validCategories[0] // fallback
-      }
-    }
-
-    return parsed
-  } catch {
-    return callClaudeAnalysis(anonymizedText, attempt + 1)
-  }
-}
-
-function validateAndFixScores(result: AnalysisResult): AnalysisResult {
-  const categories = result.score?.categories
-  if (!categories) return result
-
-  // Fix each category: detail scores should sum to category score
-  for (const catKey of Object.keys(categories)) {
-    const cat = categories[catKey]
-    if (!cat?.details) continue
-
-    let detailSum = 0
-    for (const detKey of Object.keys(cat.details)) {
-      const detail = cat.details[detKey]
-      // Clamp detail score to max
-      if (detail.score > detail.max) {
-        detail.score = detail.max
-      }
-      if (detail.score < 0) {
-        detail.score = 0
-      }
-      detailSum += detail.score
-    }
-    cat.score = detailSum
-  }
-
-  // Fix total: should equal sum of category scores
-  let totalSum = 0
-  for (const catKey of Object.keys(categories)) {
-    totalSum += categories[catKey].score
-  }
-  result.score.total = totalSum
-
-  return result
 }

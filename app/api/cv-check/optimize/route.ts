@@ -8,6 +8,7 @@ import { retrieveToken, deleteToken } from '@/lib/cv-token-store'
 import { reinsertContactData } from '@/lib/cv-anonymize'
 import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { analyzeCV } from '@/lib/cv-analysis'
 
 export const maxDuration = 60 // Allow up to 60 seconds for this route
 
@@ -86,18 +87,36 @@ export async function POST(req: Request) {
       change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
-    // Estimate improved score based on number of changes made.
-    // A second Claude scoring call would double the processing time and risk timeouts.
-    const originalTotal = original_score_data?.total ?? 0
-    const changeCount = optimizationResult.changes_summary.length
-    const placeholderCount = optimizationResult.placeholders.length
-    const improvement = Math.min(
-      100 - originalTotal,
-      Math.round(changeCount * 2.5 + placeholderCount * 1.5 + 5)
-    )
-    const estimatedScore = Math.min(100, originalTotal + improvement)
+    // Step 3: Re-analyze the optimized CV for real scores
+    // Build plaintext from optimized sections for analysis
+    const optimizedPlaintext = optimizationResult.sections
+      .map((s) => `${s.name}\n${s.content}`)
+      .join('\n\n')
 
-    // Step 3: Store result in Supabase
+    const originalAts = original_score_data?.ats ?? 0
+    const originalContent = original_score_data?.content ?? 0
+
+    let optimizedAts: number | null = null
+    let optimizedContent: number | null = null
+    let optimizedScoreDetails: { ats: number; content: number } | null = null
+
+    // Re-analysis: run the same analysis prompt on the optimized text.
+    // If this fails, the optimization is still valid — we just won't have scores.
+    try {
+      const reAnalysis = await analyzeCV(optimizedPlaintext)
+      if (reAnalysis) {
+        optimizedAts = reAnalysis.ats_score.total
+        optimizedContent = reAnalysis.content_score.total
+        optimizedScoreDetails = {
+          ats: reAnalysis.ats_score.total,
+          content: reAnalysis.content_score.total,
+        }
+      }
+    } catch {
+      // Re-analysis failed — continue without optimized scores
+    }
+
+    // Step 4: Store result in Supabase
     const resultId = nanoid()
     const now = new Date().toISOString()
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -108,10 +127,10 @@ export async function POST(req: Request) {
         id: resultId,
         user_id: user.id,
         created_at: now,
-        original_score: originalTotal,
+        original_score: originalAts, // backward compat: store ATS score as primary
         original_score_details: original_score_data ?? null,
-        optimized_score: estimatedScore,
-        optimized_score_details: null,
+        optimized_score: optimizedAts ?? 0,
+        optimized_score_details: optimizedScoreDetails,
         changes_summary: optimizationResult.changes_summary,
         placeholders: optimizationResult.placeholders,
         tips: tips ?? null,
@@ -130,9 +149,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       id: resultId,
-      original_score: originalTotal,
-      optimized_score: estimatedScore,
-      optimized_score_details: null,
+      original_ats_score: originalAts,
+      original_content_score: originalContent,
+      optimized_ats_score: optimizedAts,
+      optimized_content_score: optimizedContent,
       changes_summary: optimizationResult.changes_summary,
       placeholders: optimizationResult.placeholders,
       sections: optimizationResult.sections,
@@ -203,4 +223,3 @@ async function callClaudeOptimization(anonymizedText: string, language: string, 
     return callClaudeOptimization(anonymizedText, language, attempt + 1)
   }
 }
-

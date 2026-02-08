@@ -5,36 +5,29 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import Footer from '@/components/Footer'
+import { getScoreColor, getScoreLabel } from '@/lib/cv-score-utils'
 
 // --- Types ---
 
-interface ScoreDetail {
+interface ScoreCategory {
   score: number
   max: number
   reasoning: string
 }
 
-interface CategoryScore {
-  score: number
-  max: number
-  details: Record<string, ScoreDetail>
+interface DimensionScore {
+  total: number
+  categories: Record<string, ScoreCategory>
 }
 
 interface AnalysisResult {
   language: string
-  score: {
-    total: number
-    categories: {
-      ats_parsing: CategoryScore
-      content_quality: CategoryScore
-      completeness: CategoryScore
-      formal_quality: CategoryScore
-      overall_impression: CategoryScore
-    }
-  }
+  ats_score: DimensionScore
+  content_score: DimensionScore
   tips: Array<{
     title: string
     description: string
+    dimension: string
     category: string
     impact: string
   }>
@@ -45,81 +38,27 @@ type AnalysisPhase = 'idle' | 'uploading' | 'reading' | 'analyzing' | 'scoring' 
 
 // --- Helpers ---
 
-const CATEGORY_LABELS: Record<string, string> = {
-  ats_parsing: 'ATS-Parsing & Lesbarkeit',
+const ATS_CATEGORY_LABELS: Record<string, string> = {
+  section_recognition: 'Sektionserkennung',
+  structure_order: 'Struktur & Reihenfolge',
+  formatting_consistency: 'Formatierung & Konsistenz',
+  keywords_terminology: 'Keywords & Terminologie',
+}
+
+const CONTENT_CATEGORY_LABELS: Record<string, string> = {
   content_quality: 'Inhaltliche Qualität',
   completeness: 'Vollständigkeit',
   formal_quality: 'Formale Qualität',
-  overall_impression: 'Gesamteindruck',
+  coherence_career: 'Kohärenz & Karrierestory',
 }
 
-// SVG icons matching the design system — navy stroke, consistent style
-function CategoryIcon({ category }: { category: string }) {
-  const cls = "w-5 h-5 text-[#1A1A2E]"
-  switch (category) {
-    case 'ats_parsing':
-      // Document scan / code icon
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-      )
-    case 'content_quality':
-      // Pencil / edit icon
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-      )
-    case 'completeness':
-      // List check / checklist icon
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    case 'formal_quality':
-      // Shield check icon
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      )
-    case 'overall_impression':
-      // Sparkles / star icon
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-        </svg>
-      )
-    default:
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      )
-  }
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 80) return '#22C55E' // green
-  if (score >= 70) return '#EAB308' // yellow
-  if (score >= 50) return '#F97316' // orange
-  return '#EF4444' // red
-}
-
-function getScoreLabel(score: number): string {
-  if (score >= 80) return 'Sehr gut'
-  if (score >= 70) return 'Gut'
-  if (score >= 50) return 'Ausbaufähig'
-  return 'Überarbeitungsbedarf'
-}
+// getScoreColor and getScoreLabel imported from @/lib/cv-score-utils
 
 // --- Score Ring Component ---
 
-function ScoreRing({ score, size = 180 }: { score: number; size?: number }) {
+function ScoreRing({ score, label, size = 140 }: { score: number; label: string; size?: number }) {
   const [displayScore, setDisplayScore] = useState(0)
-  const radius = (size - 16) / 2
+  const radius = (size - 12) / 2
   const circumference = 2 * Math.PI * radius
   const color = getScoreColor(score)
 
@@ -131,7 +70,6 @@ function ScoreRing({ score, size = 180 }: { score: number; size?: number }) {
     function animate(now: number) {
       const elapsed = now - start
       const progress = Math.min(elapsed / duration, 1)
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3)
       setDisplayScore(Math.round(eased * score))
       if (progress < 1) {
@@ -145,55 +83,58 @@ function ScoreRing({ score, size = 180 }: { score: number; size?: number }) {
   const offset = circumference - (displayScore / 100) * circumference
 
   return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#E8E0D4"
-          strokeWidth="12"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl sm:text-5xl font-extrabold" style={{ color }}>
-          {displayScore}
-        </span>
-        <span className="text-xs sm:text-sm text-[#4A5568] font-medium mt-1">
-          von 100
-        </span>
+    <div className="flex flex-col items-center">
+      <div className="relative inline-flex items-center justify-center">
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#E8E0D4"
+            strokeWidth="10"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.1s ease-out' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-3xl sm:text-4xl font-extrabold" style={{ color }}>
+            {displayScore}
+          </span>
+          <span className="text-[10px] sm:text-xs text-[#4A5568] font-medium mt-0.5">
+            von 100
+          </span>
+        </div>
       </div>
+      <p className="text-center mt-2 text-sm font-semibold" style={{ color }}>
+        {getScoreLabel(score)}
+      </p>
+      <p className="text-center text-xs text-[#9CA3AF] mt-0.5">{label}</p>
     </div>
   )
 }
 
 // --- Category Bar Component ---
 
-function CategoryBar({ label, category, score, max }: { label: string; category: string; score: number; max: number }) {
+function CategoryBar({ label, score, max }: { label: string; score: number; max: number }) {
   const pct = Math.round((score / max) * 100)
   const color = getScoreColor(pct)
 
   return (
     <div className="flex items-center gap-3">
-      <div className="w-8 h-8 rounded-lg bg-[#F5EFE3] flex items-center justify-center shrink-0">
-        <CategoryIcon category={category} />
-      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs sm:text-sm font-medium text-[#1A1A2E] truncate">{label}</span>
+          <span className="text-xs font-medium text-[#1A1A2E] truncate">{label}</span>
           <span className="text-xs font-semibold text-[#4A5568] ml-2 shrink-0">{score}/{max}</span>
         </div>
         <div className="h-2 bg-[#E8E0D4] rounded-full overflow-hidden">
@@ -212,6 +153,8 @@ function CategoryBar({ label, category, score, max }: { label: string; category:
 function TipCard({ tip, index }: { tip: AnalysisResult['tips'][0]; index: number }) {
   const [expanded, setExpanded] = useState(false)
   const impactColor = tip.impact === 'high' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+  const dimensionLabel = tip.dimension === 'ats' ? 'ATS' : 'Inhalt'
+  const dimensionColor = tip.dimension === 'ats' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
 
   return (
     <button
@@ -225,6 +168,9 @@ function TipCard({ tip, index }: { tip: AnalysisResult['tips'][0]; index: number
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="text-sm font-semibold text-[#1A1A2E]">{tip.title}</h4>
+            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${dimensionColor}`}>
+              {dimensionLabel}
+            </span>
             <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${impactColor}`}>
               {tip.impact === 'high' ? 'Hohe Wirkung' : 'Mittlere Wirkung'}
             </span>
@@ -400,7 +346,7 @@ export default function CvCheckPage() {
             Kostenloser Lebenslauf-Check
           </h1>
           <p className="text-[#4A5568] text-base sm:text-lg max-w-2xl mx-auto">
-            Lade deinen Lebenslauf hoch und erhalte sofort einen ATS-Kompatibilitäts-Score
+            Lade deinen Lebenslauf hoch und erhalte sofort eine ATS- und Inhalts-Bewertung
             mit konkreten Verbesserungstipps.
           </p>
         </div>
@@ -495,28 +441,48 @@ export default function CvCheckPage() {
         {/* Results */}
         {phase === 'done' && result && (
           <div className="space-y-6 animate-fade-in">
-            {/* Score Card */}
+            {/* Score Card — Two Dimensions */}
             <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
-              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
-                {/* Score Ring */}
-                <div className="shrink-0">
-                  <ScoreRing score={result.score.total} />
-                  <p className="text-center mt-2 text-sm font-semibold" style={{ color: getScoreColor(result.score.total) }}>
-                    {getScoreLabel(result.score.total)}
-                  </p>
+              {/* Score Rings */}
+              <div className="flex items-start justify-center gap-8 sm:gap-16 mb-8">
+                <ScoreRing score={result.ats_score.total} label="ATS-Score" />
+                <ScoreRing score={result.content_score.total} label="Inhalts-Score" />
+              </div>
+
+              {/* Category Breakdown — Two Columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-10">
+                {/* ATS Categories */}
+                <div>
+                  <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">
+                    ATS-Kompatibilität
+                  </h3>
+                  <div className="space-y-2.5">
+                    {Object.entries(result.ats_score.categories).map(([key, cat]) => (
+                      <CategoryBar
+                        key={key}
+                        label={ATS_CATEGORY_LABELS[key] || key}
+                        score={cat.score}
+                        max={cat.max}
+                      />
+                    ))}
+                  </div>
                 </div>
 
-                {/* Category Bars */}
-                <div className="flex-1 w-full space-y-3">
-                  {Object.entries(result.score.categories).map(([key, cat]) => (
-                    <CategoryBar
-                      key={key}
-                      label={CATEGORY_LABELS[key] || key}
-                      category={key}
-                      score={cat.score}
-                      max={cat.max}
-                    />
-                  ))}
+                {/* Content Categories */}
+                <div>
+                  <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">
+                    Inhaltliche Qualität
+                  </h3>
+                  <div className="space-y-2.5">
+                    {Object.entries(result.content_score.categories).map(([key, cat]) => (
+                      <CategoryBar
+                        key={key}
+                        label={CONTENT_CATEGORY_LABELS[key] || key}
+                        score={cat.score}
+                        max={cat.max}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -540,10 +506,10 @@ export default function CvCheckPage() {
               </h3>
               <p className="text-sm text-white/70 mb-5 max-w-md mx-auto">
                 Unser KI-Optimierer überarbeitet deinen gesamten Lebenslauf für maximale
-                ATS-Kompatibilität. Du erhältst ein professionelles PDF und Word-Dokument.
+                ATS-Kompatibilität und bessere inhaltliche Wirkung. Du erhältst ein professionelles PDF und Word-Dokument.
               </p>
               <Link
-                href={`/cv-check/optimize?token=${result.cv_text_token}&score=${result.score.total}`}
+                href={`/cv-check/optimize?token=${result.cv_text_token}&ats=${result.ats_score.total}&content=${result.content_score.total}`}
                 className="inline-block bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold text-sm px-8 py-3 rounded-xl transition-colors"
               >
                 CV optimieren lassen – nur 3,99 €
