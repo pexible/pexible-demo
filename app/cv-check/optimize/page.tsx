@@ -105,15 +105,26 @@ function CheckoutForm({ onSuccess }: { onSuccess: (paymentIntentId: string) => v
 // --- Optimization Progress ---
 
 function OptimizationProgress({ phase }: { phase: string }) {
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
   const phases = [
-    { key: 'optimizing', label: 'Dein Lebenslauf wird optimiert...' },
-    { key: 'formulating', label: 'Formulierungen werden überarbeitet...' },
-    { key: 'quality', label: 'Qualität wird geprüft...' },
-    { key: 'creating', label: 'Dokumente werden erstellt...' },
-    { key: 'finishing', label: 'Fast fertig...' },
+    { key: 'optimizing', label: 'KI optimiert deinen Lebenslauf...' },
+    { key: 'scoring', label: 'Qualität wird bewertet...' },
+    { key: 'saving', label: 'Ergebnis wird gespeichert...' },
   ]
 
   const currentIndex = phases.findIndex((p) => p.key === phase)
+
+  const formatTime = (s: number) => {
+    const min = Math.floor(s / 60)
+    const sec = s % 60
+    return min > 0 ? `${min}:${sec.toString().padStart(2, '0')}` : `${sec}s`
+  }
 
   return (
     <div className="flex flex-col items-center py-12">
@@ -149,6 +160,13 @@ function OptimizationProgress({ phase }: { phase: string }) {
           )
         })}
       </div>
+
+      <p className="text-xs text-[#9CA3AF] mt-6">
+        Vergangene Zeit: {formatTime(elapsed)}
+      </p>
+      <p className="text-xs text-[#D1C9BD] mt-1">
+        Dies kann bis zu 2 Minuten dauern.
+      </p>
     </div>
   )
 }
@@ -215,12 +233,6 @@ function OptimizeContent() {
   const handlePaymentSuccess = useCallback(async (paymentIntentId: string) => {
     setOptimizationPhase('optimizing')
 
-    const phaseTimers: NodeJS.Timeout[] = []
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('formulating'), 5000))
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('quality'), 15000))
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('creating'), 25000))
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('finishing'), 35000))
-
     try {
       const res = await fetch('/api/cv-check/optimize', {
         method: 'POST',
@@ -232,24 +244,67 @@ function OptimizeContent() {
         }),
       })
 
-      phaseTimers.forEach(clearTimeout)
-
+      // Non-streaming error (validation failed before stream started)
       if (!res.ok) {
-        const data = await res.json()
-        setOptimizationError(data.error || 'Fehler bei der Optimierung.')
+        try {
+          const data = await res.json()
+          setOptimizationError(data.error || 'Fehler bei der Optimierung.')
+        } catch {
+          setOptimizationError('Fehler bei der Optimierung.')
+        }
         setOptimizationPhase(null)
         return
       }
 
-      const data = await res.json()
-      // Redirect to persistent result page
-      router.push(`/cv-check/result/${data.id}`)
+      // Read streamed NDJSON progress events
+      const reader = res.body?.getReader()
+      if (!reader) {
+        setOptimizationError('Streaming wird nicht unterstützt.')
+        setOptimizationPhase(null)
+        return
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const data = JSON.parse(line)
+            if (data.type === 'progress') {
+              setOptimizationPhase(data.phase)
+            } else if (data.type === 'result') {
+              router.push(`/cv-check/result/${data.id}`)
+              return
+            } else if (data.type === 'error') {
+              setOptimizationError(data.error || 'Fehler bei der Optimierung.')
+              setOptimizationPhase(null)
+              return
+            }
+          } catch {
+            // Skip malformed lines
+          }
+        }
+      }
+
+      // Stream ended without a result
+      if (!optimizationError) {
+        setOptimizationError('Verbindung unterbrochen. Bitte versuche es erneut.')
+        setOptimizationPhase(null)
+      }
     } catch {
-      phaseTimers.forEach(clearTimeout)
       setOptimizationError('Netzwerkfehler bei der Optimierung.')
       setOptimizationPhase(null)
     }
-  }, [token, originalAtsScore, originalContentScore, router])
+  }, [token, originalAtsScore, originalContentScore, router, optimizationError])
 
   if (userLoading) {
     return (

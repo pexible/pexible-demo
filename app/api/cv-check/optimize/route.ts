@@ -10,7 +10,7 @@ import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { analyzeCV } from '@/lib/cv-analysis'
 
-export const maxDuration = 120 // Allow up to 120 seconds (optimization + re-analysis)
+export const maxDuration = 300 // Vercel Pro: up to 300s for long CVs
 
 export async function POST(req: Request) {
   const ip = getClientIp(req)
@@ -29,144 +29,170 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Nicht autorisiert.' }, { status: 401 })
   }
 
+  let body: { payment_intent_id?: string; cv_text_token?: string; original_score_data?: { ats?: number; content?: number }; tips?: unknown }
   try {
-    const { payment_intent_id, cv_text_token, original_score_data, tips } = await req.json()
-
-    // Validate required fields
-    if (!payment_intent_id || !cv_text_token) {
-      return NextResponse.json(
-        { error: 'payment_intent_id und cv_text_token sind erforderlich.' },
-        { status: 400 }
-      )
-    }
-
-    // Verify payment
-    const secretKey = process.env.STRIPE_SECRET_KEY
-    if (!secretKey) {
-      return NextResponse.json({ error: 'Zahlungssystem nicht konfiguriert.' }, { status: 500 })
-    }
-
-    const stripe = new Stripe(secretKey)
-    const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id)
-
-    if (paymentIntent.status !== 'succeeded') {
-      return NextResponse.json({ error: 'Zahlung nicht bestätigt.' }, { status: 402 })
-    }
-
-    if (paymentIntent.metadata?.cv_text_token !== cv_text_token) {
-      return NextResponse.json({ error: 'Zahlungszuordnung ungültig.' }, { status: 403 })
-    }
-
-    if (paymentIntent.metadata?.user_id !== user.id) {
-      return NextResponse.json({ error: 'Zahlungszuordnung ungültig.' }, { status: 403 })
-    }
-
-    // Retrieve CV text from token store
-    const tokenEntry = await retrieveToken(cv_text_token)
-    if (!tokenEntry) {
-      return NextResponse.json(
-        { error: 'Deine Sitzung ist abgelaufen. Bitte lade deinen Lebenslauf erneut hoch.' },
-        { status: 410 }
-      )
-    }
-
-    // Step 1: Optimize the CV via Claude (pass detected language for consistency)
-    const optimizationResult = await callClaudeOptimization(tokenEntry.anonymizedText, tokenEntry.language)
-    if (!optimizationResult) {
-      return NextResponse.json(
-        { error: 'Bei der Optimierung ist ein Fehler aufgetreten. Bitte kontaktiere unseren Support.' },
-        { status: 500 }
-      )
-    }
-
-    // Step 2: Re-analyze BEFORE reinserting contact data.
-    // The original analysis scored anonymized text ([NAME], [EMAIL] etc.),
-    // so the re-analysis must also use anonymized text for consistent scoring.
-    const rawPlaintext = optimizationResult.sections
-      .map((s) => `${s.name}\n\n${s.content}`)
-      .join('\n\n')
-    // Strip optimization placeholders — the scorer counts "concrete numbers"
-    // and [Please add: X] / [Bitte ergänzen: X] would count as vague text.
-    const scoringText = normalizeText(rawPlaintext)
-      .replace(/\[(?:Bitte ergänzen|Please add):?\s*[^\]]*\]/gi, '')
-      .replace(/  +/g, ' ')
-
-    const originalAts = original_score_data?.ats ?? 0
-    const originalContent = original_score_data?.content ?? 0
-
-    let optimizedAts: number | null = null
-    let optimizedContent: number | null = null
-    let optimizedScoreDetails: { ats: number; content: number } | null = null
-
-    // Re-analyze the optimized text, then floor-clamp so scores never regress.
-    try {
-      const reAnalysis = await analyzeCV(scoringText)
-      if (reAnalysis) {
-        // Floor clamp: ensure scores never drop below original
-        optimizedAts = Math.max(reAnalysis.ats_score.total, originalAts)
-        optimizedContent = Math.max(reAnalysis.content_score.total, originalContent)
-        optimizedScoreDetails = { ats: optimizedAts, content: optimizedContent }
-      }
-    } catch {
-      // Re-analysis failed — continue without optimized scores
-    }
-
-    // Step 3: Re-insert contact data into optimized sections (for final result)
-    for (const section of optimizationResult.sections) {
-      section.content = reinsertContactData(section.content, tokenEntry.originalContactData)
-    }
-    for (const change of optimizationResult.changes_summary) {
-      change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
-    }
-
-    // Step 4: Store result in Supabase
-    const resultId = nanoid()
-    const now = new Date().toISOString()
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-
-    try {
-      const admin = createAdminClient()
-      await admin.from('cv_check_results').insert({
-        id: resultId,
-        user_id: user.id,
-        created_at: now,
-        original_score: originalAts, // backward compat: store ATS score as primary
-        original_score_details: original_score_data ?? null,
-        optimized_score: optimizedAts ?? 0,
-        optimized_score_details: optimizedScoreDetails,
-        changes_summary: optimizationResult.changes_summary,
-        placeholders: optimizationResult.placeholders,
-        tips: tips ?? null,
-        optimized_sections: optimizationResult.sections,
-        files_expire_at: expiresAt,
-        payment_id: payment_intent_id,
-        status: 'completed',
-      })
-    } catch {
-      // If Supabase table doesn't exist, continue without persistence.
-      // The result is still returned in the response.
-    }
-
-    // Clean up token
-    await deleteToken(cv_text_token)
-
-    return NextResponse.json({
-      id: resultId,
-      original_ats_score: originalAts,
-      original_content_score: originalContent,
-      optimized_ats_score: optimizedAts,
-      optimized_content_score: optimizedContent,
-      changes_summary: optimizationResult.changes_summary,
-      placeholders: optimizationResult.placeholders,
-      sections: optimizationResult.sections,
-      files_expire_at: expiresAt,
-    })
+    body = await req.json()
   } catch {
+    return NextResponse.json({ error: 'Ungültige Anfrage.' }, { status: 400 })
+  }
+
+  const { payment_intent_id, cv_text_token, original_score_data, tips } = body
+
+  // Validate required fields
+  if (!payment_intent_id || !cv_text_token) {
     return NextResponse.json(
-      { error: 'Ein unerwarteter Fehler ist aufgetreten.' },
-      { status: 500 }
+      { error: 'payment_intent_id und cv_text_token sind erforderlich.' },
+      { status: 400 }
     )
   }
+
+  // Verify payment
+  const secretKey = process.env.STRIPE_SECRET_KEY
+  if (!secretKey) {
+    return NextResponse.json({ error: 'Zahlungssystem nicht konfiguriert.' }, { status: 500 })
+  }
+
+  const stripe = new Stripe(secretKey)
+  let paymentIntent: Stripe.PaymentIntent
+  try {
+    paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id)
+  } catch {
+    return NextResponse.json({ error: 'Zahlung nicht gefunden.' }, { status: 400 })
+  }
+
+  if (paymentIntent.status !== 'succeeded') {
+    return NextResponse.json({ error: 'Zahlung nicht bestätigt.' }, { status: 402 })
+  }
+
+  if (paymentIntent.metadata?.cv_text_token !== cv_text_token) {
+    return NextResponse.json({ error: 'Zahlungszuordnung ungültig.' }, { status: 403 })
+  }
+
+  if (paymentIntent.metadata?.user_id !== user.id) {
+    return NextResponse.json({ error: 'Zahlungszuordnung ungültig.' }, { status: 403 })
+  }
+
+  // Retrieve CV text from token store
+  const tokenEntry = await retrieveToken(cv_text_token)
+  if (!tokenEntry) {
+    return NextResponse.json(
+      { error: 'Deine Sitzung ist abgelaufen. Bitte lade deinen Lebenslauf erneut hoch.' },
+      { status: 410 }
+    )
+  }
+
+  // All validation passed — switch to streaming response.
+  // The client reads NDJSON lines: {"type":"progress","phase":"..."} or {"type":"result",...}
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (data: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(JSON.stringify(data) + '\n'))
+      }
+
+      try {
+        // Step 1: Optimize the CV
+        send({ type: 'progress', phase: 'optimizing' })
+        const optimizationResult = await callClaudeOptimization(tokenEntry.anonymizedText, tokenEntry.language)
+        if (!optimizationResult) {
+          send({ type: 'error', error: 'Bei der Optimierung ist ein Fehler aufgetreten. Bitte kontaktiere unseren Support.' })
+          controller.close()
+          return
+        }
+
+        // Step 2: Re-analyze BEFORE reinserting contact data
+        send({ type: 'progress', phase: 'scoring' })
+        const rawPlaintext = optimizationResult.sections
+          .map((s) => `${s.name}\n\n${s.content}`)
+          .join('\n\n')
+        const scoringText = normalizeText(rawPlaintext)
+          .replace(/\[(?:Bitte ergänzen|Please add):?\s*[^\]]*\]/gi, '')
+          .replace(/  +/g, ' ')
+
+        const originalAts = original_score_data?.ats ?? 0
+        const originalContent = original_score_data?.content ?? 0
+
+        let optimizedAts: number | null = null
+        let optimizedContent: number | null = null
+        let optimizedScoreDetails: { ats: number; content: number } | null = null
+
+        try {
+          const reAnalysis = await analyzeCV(scoringText)
+          if (reAnalysis) {
+            optimizedAts = Math.max(reAnalysis.ats_score.total, originalAts)
+            optimizedContent = Math.max(reAnalysis.content_score.total, originalContent)
+            optimizedScoreDetails = { ats: optimizedAts, content: optimizedContent }
+          }
+        } catch {
+          // Re-analysis failed — continue without optimized scores
+        }
+
+        // Step 3: Re-insert contact data
+        send({ type: 'progress', phase: 'saving' })
+        for (const section of optimizationResult.sections) {
+          section.content = reinsertContactData(section.content, tokenEntry.originalContactData)
+        }
+        for (const change of optimizationResult.changes_summary) {
+          change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
+        }
+
+        // Step 4: Store result in Supabase
+        const resultId = nanoid()
+        const now = new Date().toISOString()
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+        try {
+          const admin = createAdminClient()
+          await admin.from('cv_check_results').insert({
+            id: resultId,
+            user_id: user.id,
+            created_at: now,
+            original_score: originalAts,
+            original_score_details: original_score_data ?? null,
+            optimized_score: optimizedAts ?? 0,
+            optimized_score_details: optimizedScoreDetails,
+            changes_summary: optimizationResult.changes_summary,
+            placeholders: optimizationResult.placeholders,
+            tips: tips ?? null,
+            optimized_sections: optimizationResult.sections,
+            files_expire_at: expiresAt,
+            payment_id: payment_intent_id,
+            status: 'completed',
+          })
+        } catch {
+          // Continue without persistence — result is still sent to client
+        }
+
+        await deleteToken(cv_text_token)
+
+        // Step 5: Send final result
+        send({
+          type: 'result',
+          id: resultId,
+          original_ats_score: originalAts,
+          original_content_score: originalContent,
+          optimized_ats_score: optimizedAts,
+          optimized_content_score: optimizedContent,
+          changes_summary: optimizationResult.changes_summary,
+          placeholders: optimizationResult.placeholders,
+          sections: optimizationResult.sections,
+          files_expire_at: expiresAt,
+        })
+        controller.close()
+      } catch {
+        send({ type: 'error', error: 'Ein unerwarteter Fehler ist aufgetreten.' })
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
+    },
+  })
 }
 
 interface OptimizationResult {
@@ -181,15 +207,11 @@ interface OptimizationResult {
 function normalizeText(text: string): string {
   let r = text
   r = r.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  // Replace unicode whitespace (NBSP, thin spaces, etc.) with regular spaces
   r = r.replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ')
   r = r.replace(/\t/g, '  ')
-  // Reduce deep indentation (4+ spaces) to 2 spaces
   r = r.replace(/^( {4,})/gm, '  ')
   r = r.replace(/[ \t]+$/gm, '')
-  // Normalize bullet characters to "- "
   r = r.replace(/^(\s*)[•●○►▪‣*→]\s*/gm, '$1- ')
-  // Replace literal \n escape sequences from JSON content with real newlines
   r = r.replace(/\\n/g, '\n')
   r = r.replace(/\n{3,}/g, '\n\n')
   return r.trim()
