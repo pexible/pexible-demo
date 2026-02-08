@@ -6,6 +6,20 @@ const nextConfig = {
       bodySizeLimit: '10mb',
     },
   },
+  async redirects() {
+    return [
+      {
+        source: '/chat',
+        destination: '/jobs',
+        permanent: true,
+      },
+      {
+        source: '/chat/:id',
+        destination: '/jobs/:id',
+        permanent: true,
+      },
+    ]
+  },
   async headers() {
     return [
       {

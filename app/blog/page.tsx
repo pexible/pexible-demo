@@ -192,7 +192,7 @@ export default function BlogPage() {
               <p className="text-[#9CA3AF] mb-6 max-w-md mx-auto text-sm">
                 Unser KI-Makler findet passende Stellen für dich. Kostenlos starten, Ergebnisse sofort erhalten.
               </p>
-              <Link href="/chat" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 min-h-[48px] bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
+              <Link href="/jobs" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 min-h-[48px] bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
                 Jetzt Jobsuche starten
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>

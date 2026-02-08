@@ -75,7 +75,7 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-[#E8E0D4] rounded-full text-xs sm:text-sm mb-6 sm:mb-8 shadow-sm">
             <span className="bg-[#E8930C] text-white text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0">NEU</span>
             <span className="text-[#4A5568]">Dein KI Job-Makler &ndash; jetzt verfügbar</span>
-            <Link href="/chat" className="text-[#1A1A2E] font-medium hover:underline flex-shrink-0" aria-label="Chat starten">&rarr;</Link>
+            <Link href="/jobs" className="text-[#1A1A2E] font-medium hover:underline flex-shrink-0" aria-label="Chat starten">&rarr;</Link>
           </div>
 
           {/* Main Headline */}
@@ -100,7 +100,7 @@ export default function LandingPage() {
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link
-              href="/chat"
+              href="/jobs"
               className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-[#1A1A2E] text-white font-semibold rounded-full hover:bg-[#2D2D44] transition-all text-sm shadow-lg shadow-[#1A1A2E]/10"
             >
               Kostenlos starten
@@ -195,7 +195,7 @@ export default function LandingPage() {
                   <div className="flex-1 px-4 py-3 bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm text-[#9CA3AF]">
                     z.B. Software Entwickler in Berlin...
                   </div>
-                  <Link href="/chat" className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] rounded-xl transition-colors flex items-center" aria-label="Nachricht senden">
+                  <Link href="/jobs" className="px-4 py-3 bg-[#F5B731] hover:bg-[#E8930C] rounded-xl transition-colors flex items-center" aria-label="Nachricht senden">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                   </Link>
                 </div>
@@ -325,7 +325,7 @@ export default function LandingPage() {
                 ))}
               </div>
 
-              <Link href="/chat" className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#1A1A2E] text-white font-semibold rounded-full hover:bg-[#2D2D44] transition-colors text-sm">
+              <Link href="/jobs" className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-[#1A1A2E] text-white font-semibold rounded-full hover:bg-[#2D2D44] transition-colors text-sm">
                 Jetzt ausprobieren
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
               </Link>
@@ -502,7 +502,7 @@ export default function LandingPage() {
               <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4 leading-tight">Bereit, deinen<br />Traumjob zu finden?</h2>
               <p className="text-[#9CA3AF] mb-8 max-w-md mx-auto">Starte jetzt deine kostenlose Suche und entdecke Stellen, die du auf keinem Portal findest.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link href="/chat" className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
+                <Link href="/jobs" className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
                   Kostenlos starten
                 </Link>
                 <a href="#so-funktionierts" className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center text-white/80 hover:text-white font-medium rounded-full border border-white/20 hover:border-white/40 transition-all text-sm">

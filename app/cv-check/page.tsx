@@ -558,7 +558,7 @@ export default function CvCheckPage() {
                 Neuen CV prüfen
               </button>
               <Link
-                href="/chat"
+                href="/jobs"
                 className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] px-5 py-2.5 transition-colors"
               >
                 Passende Jobs finden →

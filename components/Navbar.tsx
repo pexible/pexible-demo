@@ -96,7 +96,7 @@ function NavIcon({ path, className = 'w-5 h-5' }: { path: string; className?: st
 
 // ─── Main Navbar component ───
 
-export default function Navbar({ variant = 'default', backHref = '/chat', backLabel = 'Zurück' }: NavbarProps) {
+export default function Navbar({ variant = 'default', backHref = '/jobs', backLabel = 'Zurück' }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const pathname = usePathname()
@@ -346,7 +346,7 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
                     Anmelden
                   </Link>
                   <Link
-                    href="/chat"
+                    href="/jobs"
                     className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
                   >
                     Jetzt starten
@@ -507,7 +507,7 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
                   Anmelden
                 </Link>
                 <Link
-                  href="/chat"
+                  href="/jobs"
                   onClick={closeMobile}
                   className="block text-center text-sm font-semibold bg-[#1A1A2E] text-white px-4 py-3 min-h-[48px] rounded-full active:bg-[#2D2D44] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
                 >

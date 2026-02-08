@@ -21,7 +21,7 @@ export default function NavAuthButtons() {
     return (
       <div className="flex items-center gap-2 sm:gap-3">
         <Link
-          href="/chat"
+          href="/jobs"
           className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] transition-colors px-3 sm:px-4 py-2 min-h-[44px] flex items-center"
         >
           Meine Chats
@@ -51,7 +51,7 @@ export default function NavAuthButtons() {
         Anmelden
       </Link>
       <Link
-        href="/chat"
+        href="/jobs"
         className="text-sm font-semibold bg-[#1A1A2E] text-white px-4 sm:px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors"
       >
         Jetzt starten
@@ -69,7 +69,7 @@ export function NavAuthButtonsMobile({ onNavigate }: { onNavigate?: () => void }
     const userName = user.firstName || ''
     return (
       <div className="pt-3 border-t border-[#E8E0D4]/60 space-y-1">
-        <Link href="/chat" onClick={onNavigate} className="flex items-center gap-3 text-sm font-medium text-[#1A1A2E] px-2 py-3 min-h-[48px] active:bg-[#F5EFE3] rounded-xl transition-colors">
+        <Link href="/jobs" onClick={onNavigate} className="flex items-center gap-3 text-sm font-medium text-[#1A1A2E] px-2 py-3 min-h-[48px] active:bg-[#F5EFE3] rounded-xl transition-colors">
           {userName && (
             <div className="w-8 h-8 bg-gradient-to-br from-[#F5B731] to-[#E8930C] rounded-full flex items-center justify-center text-white text-xs font-bold">
               {userName.charAt(0).toUpperCase()}
@@ -92,7 +92,7 @@ export function NavAuthButtonsMobile({ onNavigate }: { onNavigate?: () => void }
       <Link href="/login" onClick={onNavigate} className="block text-center text-sm font-medium text-[#4A5568] px-5 py-3 min-h-[48px] active:bg-[#F5EFE3] rounded-xl transition-colors">
         Anmelden
       </Link>
-      <Link href="/chat" onClick={onNavigate} className="block text-center text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-3 min-h-[48px] rounded-full active:bg-[#2D2D44] transition-colors">
+      <Link href="/jobs" onClick={onNavigate} className="block text-center text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-3 min-h-[48px] rounded-full active:bg-[#2D2D44] transition-colors">
         Jetzt starten
       </Link>
     </div>

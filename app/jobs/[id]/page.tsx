@@ -246,7 +246,7 @@ export default function ChatDetailPage() {
         } catch {
           // Payment confirmation failed, continue with normal load
         }
-        window.history.replaceState({}, '', `/chat/${conversationId}`)
+        window.history.replaceState({}, '', `/jobs/${conversationId}`)
       }
 
       try {
@@ -276,7 +276,7 @@ export default function ChatDetailPage() {
         if (paymentConfirmed) {
           setPaymentRedirectConfirmed(true)
         } else {
-          setLoadError('Chat nicht gefunden')
+          setLoadError('Jobsuche nicht gefunden')
         }
       }
       setConversationLoaded(true)
@@ -301,7 +301,7 @@ export default function ChatDetailPage() {
     return (
       <div className="h-screen bg-[#FDF8F0] flex flex-col items-center justify-center px-4">
         <p className="text-[#6B7280] mb-4">{loadError}</p>
-        <Link href="/chat" className="text-sm font-semibold text-[#F5B731] hover:text-[#E8930C]">Zurück zur Chat-Liste</Link>
+        <Link href="/jobs" className="text-sm font-semibold text-[#F5B731] hover:text-[#E8930C]">Zurück zur Übersicht</Link>
       </div>
     )
   }
@@ -315,8 +315,8 @@ export default function ChatDetailPage() {
           </div>
           <h2 className="text-xl font-bold text-[#1A1A2E] mb-2">Zahlung erfolgreich!</h2>
           <p className="text-[#6B7280] mb-6">Deine Zahlung wurde bestätigt. Deine vollständigen Suchergebnisse werden für dich vorbereitet.</p>
-          <Link href="/chat" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F5B731] hover:bg-[#E8930C] text-white font-semibold rounded-xl transition-colors">
-            Zurück zu deinen Chats
+          <Link href="/jobs" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#F5B731] hover:bg-[#E8930C] text-white font-semibold rounded-xl transition-colors">
+            Zurück zu deinen Jobsuchen
           </Link>
         </div>
       </div>
@@ -345,7 +345,7 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/chat" className="flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:p-0">
+            <Link href="/jobs" className="flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:p-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               <span className="hidden sm:inline">Zurück</span>
             </Link>
@@ -382,7 +382,7 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
                   </div>
                   <div>
                     <p className="font-semibold text-[#1A1A2E] text-sm tracking-tight">pexible Job-Makler</p>
-                    <span className="text-xs text-green-600 font-medium">Chat abgeschlossen</span>
+                    <span className="text-xs text-green-600 font-medium">Jobsuche abgeschlossen</span>
                   </div>
                 </div>
                 {results.length > 0 && (
@@ -419,7 +419,7 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
                     <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span>Suche abgeschlossen</span>
                   </div>
-                  <Link href="/chat" className="inline-block mt-2 text-sm font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">
+                  <Link href="/jobs" className="inline-block mt-2 text-sm font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">
                     Neue Suche starten &rarr;
                   </Link>
                 </div>
@@ -472,7 +472,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
     const params = new URLSearchParams(window.location.search)
     if (params.get('registered') === '1') {
       hasAutoSent.current = true
-      window.history.replaceState({}, '', `/chat/${conversationId}`)
+      window.history.replaceState({}, '', `/jobs/${conversationId}`)
       // Short delay to let useChat initialize with messages
       setTimeout(() => {
         append({ role: 'user', content: 'Ich habe mich gerade registriert. Bitte zeige mir meine Suchergebnisse!' })
@@ -708,7 +708,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
       <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href="/chat" className="flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:p-0">
+            <Link href="/jobs" className="flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors p-1 min-h-[44px] min-w-[44px] justify-center sm:min-w-0 sm:p-0">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               <span className="hidden sm:inline">Zurück</span>
             </Link>
@@ -855,7 +855,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
                       <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       <span>Suche abgeschlossen</span>
                     </div>
-                    <Link href="/chat" className="inline-block mt-2 text-sm font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">
+                    <Link href="/jobs" className="inline-block mt-2 text-sm font-semibold text-[#F5B731] hover:text-[#E8930C] transition-colors">
                       Neue Suche starten &rarr;
                     </Link>
                   </div>

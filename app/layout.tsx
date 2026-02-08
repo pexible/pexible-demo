@@ -101,7 +101,7 @@ const websiteJsonLd = {
     '@type': 'SearchAction',
     target: {
       '@type': 'EntryPoint',
-      urlTemplate: `${siteUrl}/chat`,
+      urlTemplate: `${siteUrl}/jobs`,
     },
     'query-input': 'required name=search_term_string',
   },
