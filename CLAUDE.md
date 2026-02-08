@@ -129,9 +129,8 @@ app/
     cv-check/download/[id]/[format]/route.ts [264 Z] PDF/DOCX-Export der Optimierung
 
 components/
-  Navbar.tsx              [449 Z]  Shared Navigation: 3 Varianten (default, minimal, back)
+  Navbar.tsx              [523 Z]  Shared Navigation: 3 Varianten, scroll-hide, avatar dropdown, mobile panel
   Footer.tsx                       Shared Footer: dynamisch aus lib/navigation.ts
-  NavAuthButtons.tsx      [101 Z]  Auth-abhaengige Buttons (Desktop + Mobile)
   FaqAccordion.tsx                 FAQ-Accordion mit Animation
 
 lib/
@@ -139,7 +138,7 @@ lib/
   supabase/server.ts      [28 Z]   Server-Client (cookie-basiert, SSR)
   supabase/admin.ts       [21 Z]   Admin-Client (service role, umgeht RLS)
   hooks/useUser.ts        [61 Z]   React Hook: user, isLoading, signOut
-  navigation.ts           [86 Z]   Zentrale Nav-Config: primaryNavItems, footerGroups
+  navigation.ts          [112 Z]   Zentrale Nav-Config: serviceNavItems, guestNavItems, userMenuItems, footerGroups
   rate-limit.ts           [63 Z]   In-Memory Rate-Limiter + IP-Extraktion
   demo-data.ts            [37 Z]   DEMO_COMPANIES Array + generateDemoResults()
   cv-anonymize.ts                  CV-Text-Anonymisierung
@@ -381,14 +380,28 @@ Navy (Text, dunkle Elemente):
 ### 7.5 Navbar-Varianten (components/Navbar.tsx)
 | Variante | Verwendung | Elemente |
 |---|---|---|
-| `default` | Landing, Blog, CV-Check, Mein Pex, Legal | Logo + Nav-Links + Auth-Buttons + Mobile-Menu |
+| `default` | Landing, Blog, CV-Check, Mein Pex, Legal | Logo + Center-Service-Links + User-Avatar-Dropdown (auth) / Login+CTA (guest) + Mobile-Panel |
 | `minimal` | Login-Seite | Nur Logo |
 | `back` | Detail-Ansichten | Logo + Zurueck-Button |
 
+**Default-Variante Features:**
+- Smart scroll-hide (Header verschwindet beim Runterscrollen, erscheint beim Hochscrollen)
+- Desktop: Center-Links aus `serviceNavItems` (+ `guestNavItems` fuer Gaeste), rechts Avatar-Dropdown oder Login/CTA
+- Mobile: Slide-from-right Panel mit Sektionen (Angebote, Mehr erfahren, Mein Bereich)
+- Avatar-Dropdown (auth): zeigt `userMenuItems` + Abmelden
+- Skip-Link, Focus-Trap, Escape-Key, Outside-Click-Close, Body-Scroll-Lock
+- Animated hamburger icon (3-bar -> X transition)
+
 ### 7.6 Navigation-Config (lib/navigation.ts)
-- `primaryNavItems`: Array von NavItem mit `href`, `label`, `authOnly?`, `guestOnly?`, `anchorOnHome?`, `iconPath?`
-- `footerGroups`: Array von FooterGroup mit `title` und `links[]`
-- Navbar filtert Items basierend auf Auth-Status automatisch
+| Export | Typ | Zweck |
+|---|---|---|
+| `serviceNavItems` | `NavItem[]` | Produkt-Angebote (Center Header): CV-Check, Blog, Mein Pex (authOnly) |
+| `guestNavItems` | `NavItem[]` | Landing-Anchor-Links (Center Header, nur Gaeste): Funktionen, So funktioniert's |
+| `userMenuItems` | `NavItem[]` | Avatar-Dropdown-Links (auth): Mein Pex, Meine CV-Ergebnisse |
+| `footerGroups` | `FooterGroup[]` | Footer-Spalten: Produkt, Ressourcen, Rechtliches |
+
+- Jedes `NavItem` hat: `href`, `label`, `iconPath` (required, 24x24 SVG path), `authOnly?`, `guestOnly?`, `anchorOnHome?`
+- Navbar baut `centerItems` dynamisch: auth -> `serviceNavItems`, guest -> `[...serviceNavItems, ...guestNavItems]`
 
 ---
 
@@ -441,9 +454,13 @@ tool_name: tool({
 ### 8.4 Neue Nav-Links hinzufuegen
 
 1. Oeffne `lib/navigation.ts`
-2. Fuege NavItem zu `primaryNavItems` hinzu
-3. Optional: `authOnly: true` oder `guestOnly: true` setzen
-4. Optional: `iconPath` fuer Mobile-Menu-Icon hinzufuegen (24x24 SVG path)
+2. Waehle das richtige Array:
+   - `serviceNavItems`: Produkt-Angebote (immer sichtbar im Header-Center)
+   - `guestNavItems`: Landing-Anchors (nur fuer nicht-eingeloggte User)
+   - `userMenuItems`: Avatar-Dropdown (nur fuer eingeloggte User)
+   - `footerGroups[].links`: Footer-Links
+3. `iconPath` ist Pflicht fuer NavItems (24x24 SVG stroke path)
+4. Optional: `authOnly: true`, `guestOnly: true`, `anchorOnHome: true`
 5. Navbar uebernimmt den neuen Link automatisch
 
 ### 8.5 System-Prompt aendern
@@ -496,7 +513,7 @@ tool_name: tool({
 | `@/lib/supabase/client` | `createClient()` | Client-Components |
 | `@/lib/supabase/admin` | `createAdminClient()` | API-Routen (Admin-Ops) |
 | `@/lib/hooks/useUser` | `useUser()` | Client-Components (Auth-State) |
-| `@/lib/navigation` | `primaryNavItems`, `footerGroups` | `Navbar.tsx`, `Footer.tsx` |
+| `@/lib/navigation` | `serviceNavItems`, `guestNavItems`, `userMenuItems`, `footerGroups` | `Navbar.tsx`, `Footer.tsx` |
 | `@/lib/rate-limit` | `rateLimit()`, `getClientIp()` | API-Routen |
 | `@/lib/demo-data` | `generateDemoResults()`, `DEMO_COMPANIES` | `api/chat`, `api/register` |
 | `@/components/Navbar` | `Navbar` | Seiten mit Navigation |
@@ -528,6 +545,7 @@ tool_name: tool({
 | 5 | Stripe ohne Webhook-Verifizierung | `api/payment-confirm` | Payment-Status wird client-seitig bestaetigt + metadata-validiert |
 | 6 | Chat-Seiten monolithisch | `chat/page.tsx` (898Z), `chat/[id]/page.tsx` (966Z) | Schwer wartbar, koennte aufgeteilt werden |
 | 7 | Upload-Seite ohne Design-System | `app/upload/page.tsx` | Nutzt graue Tailwind-Defaults statt Cream-Theme |
+| 8 | NavAuthButtons.tsx ist Dead Code | `components/NavAuthButtons.tsx` | Nicht mehr importiert seit Navbar-Redesign (auth im Navbar direkt) |
 
 ---
 
