@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import Breadcrumbs from '@/components/Breadcrumbs'
 
 // ─── Types ───
 
@@ -142,6 +143,7 @@ function ChatListView() {
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
       <Navbar />
+      <Breadcrumbs />
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">

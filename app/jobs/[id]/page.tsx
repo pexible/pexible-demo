@@ -8,6 +8,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { jsPDF } from 'jspdf'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import Breadcrumbs from '@/components/Breadcrumbs'
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -221,6 +222,7 @@ export default function ChatDetailPage() {
   const [loadError, setLoadError] = useState('')
   const [storedResults, setStoredResults] = useState<PdfResult[]>([])
   const [conversationSearchId, setConversationSearchId] = useState<string | null>(null)
+  const [conversationTitle, setConversationTitle] = useState('')
   const [searchPaid, setSearchPaid] = useState(false)
   const [paymentRedirectConfirmed, setPaymentRedirectConfirmed] = useState(false)
 
@@ -254,6 +256,7 @@ export default function ChatDetailPage() {
         if (!res.ok) throw new Error('Not found')
         const data = await res.json()
         setConversationStatus(paymentConfirmed ? 'completed' : data.conversation.status)
+        if (data.conversation.title) setConversationTitle(data.conversation.title)
         if (data.conversation.search_id) setConversationSearchId(data.conversation.search_id)
         if (data.searchPaid || paymentConfirmed) setSearchPaid(true)
         if (data.conversation.messages?.length > 0) setStoredMessages(data.conversation.messages)
@@ -324,15 +327,15 @@ export default function ChatDetailPage() {
   }
 
   if (conversationStatus === 'completed') {
-    return <CompletedChatView messages={storedMessages} results={storedResults} userName={user?.firstName || ''} signOut={signOut} />
+    return <CompletedChatView messages={storedMessages} results={storedResults} userName={user?.firstName || ''} signOut={signOut} conversationTitle={conversationTitle} />
   }
 
-  return <ActiveChatView conversationId={conversationId} initialMessages={storedMessages} storedResults={storedResults} userName={user?.firstName || ''} onComplete={() => setConversationStatus('completed')} searchId={conversationSearchId} searchPaid={searchPaid} signOut={signOut} />
+  return <ActiveChatView conversationId={conversationId} initialMessages={storedMessages} storedResults={storedResults} userName={user?.firstName || ''} onComplete={() => setConversationStatus('completed')} searchId={conversationSearchId} searchPaid={searchPaid} signOut={signOut} conversationTitle={conversationTitle} />
 }
 
 // ─── Completed Chat View (Read-Only) ───
 
-function CompletedChatView({ messages, results, userName, signOut }: { messages: Message[]; results: PdfResult[]; userName: string; signOut: () => Promise<void> }) {
+function CompletedChatView({ messages, results, userName, signOut, conversationTitle }: { messages: Message[]; results: PdfResult[]; userName: string; signOut: () => Promise<void>; conversationTitle: string }) {
   const jobTitle = results[0]?.job_title || ''
 
   const handleDownloadPdf = () => {
@@ -369,6 +372,7 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
           </div>
         </div>
       </nav>
+      <Breadcrumbs title={conversationTitle || jobTitle || undefined} />
 
       {/* Messages (Read-Only) */}
       <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-3 sm:pt-6 pb-2 sm:pb-8 min-h-0">
@@ -434,7 +438,7 @@ function CompletedChatView({ messages, results, userName, signOut }: { messages:
 
 // ─── Active Chat View ───
 
-function ActiveChatView({ conversationId, initialMessages, storedResults, userName, onComplete, searchId, searchPaid, signOut }: {
+function ActiveChatView({ conversationId, initialMessages, storedResults, userName, onComplete, searchId, searchPaid, signOut, conversationTitle }: {
   conversationId: string
   initialMessages: Message[]
   storedResults: PdfResult[]
@@ -443,6 +447,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
   searchId: string | null
   searchPaid: boolean
   signOut: () => Promise<void>
+  conversationTitle: string
 }) {
   const welcomeMsg: Message = {
     id: 'welcome',
@@ -731,6 +736,7 @@ function ActiveChatView({ conversationId, initialMessages, storedResults, userNa
           </div>
         </div>
       </nav>
+      <Breadcrumbs title={conversationTitle || resultJobTitle || undefined} />
 
       {/* Chat Section */}
       <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-3 sm:pt-10 pb-2 sm:pb-8 min-h-0 overflow-hidden">

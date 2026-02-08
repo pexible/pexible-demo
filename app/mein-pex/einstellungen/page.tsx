@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import Footer from '@/components/Footer'
 import { useUser } from '@/lib/hooks/useUser'
 
@@ -34,6 +35,7 @@ export default function EinstellungenPage() {
   return (
     <div className="min-h-screen bg-[#FDF8F0]">
       <Navbar />
+      <Breadcrumbs />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-16">
         <h1 className="text-2xl sm:text-3xl font-bold text-[#1A1A2E] mb-2">Einstellungen</h1>
         <p className="text-[#4A5568] mb-8">Verwalte dein Konto und deine Einstellungen.</p>
