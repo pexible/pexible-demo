@@ -102,37 +102,17 @@ export async function POST(req: Request) {
     let optimizedContent: number | null = null
     let optimizedScoreDetails: { ats: number; content: number } | null = null
 
-    // 3-stage score validation: accept → retry → floor.
-    // Ensures the user never sees a score drop after paying for optimization.
+    // Re-analyze the optimized text, then floor-clamp so scores never regress.
     try {
-      const firstAnalysis = await analyzeCV(optimizedPlaintext)
-      if (firstAnalysis) {
-        let bestAts = firstAnalysis.ats_score.total
-        let bestContent = firstAnalysis.content_score.total
-
-        // Stage 2: if either score dropped, retry once and keep the best per dimension
-        if (bestAts < originalAts || bestContent < originalContent) {
-          try {
-            const secondAnalysis = await analyzeCV(optimizedPlaintext)
-            if (secondAnalysis) {
-              bestAts = Math.max(bestAts, secondAnalysis.ats_score.total)
-              bestContent = Math.max(bestContent, secondAnalysis.content_score.total)
-            }
-          } catch {
-            // Retry failed — use first attempt scores
-          }
-        }
-
-        // Stage 3: floor — clamp to original so scores never regress
-        bestAts = Math.max(bestAts, originalAts)
-        bestContent = Math.max(bestContent, originalContent)
-
-        optimizedAts = bestAts
-        optimizedContent = bestContent
-        optimizedScoreDetails = { ats: bestAts, content: bestContent }
+      const reAnalysis = await analyzeCV(optimizedPlaintext)
+      if (reAnalysis) {
+        // Floor clamp: ensure scores never drop below original
+        optimizedAts = Math.max(reAnalysis.ats_score.total, originalAts)
+        optimizedContent = Math.max(reAnalysis.content_score.total, originalContent)
+        optimizedScoreDetails = { ats: optimizedAts, content: optimizedContent }
       }
     } catch {
-      // Re-analysis failed entirely — continue without optimized scores
+      // Re-analysis failed — continue without optimized scores
     }
 
     // Step 4: Store result in Supabase
