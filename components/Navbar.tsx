@@ -349,7 +349,7 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
                     href="/jobs"
                     className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
                   >
-                    Jetzt starten
+                    Los geht's
                   </Link>
                 </div>
               )}
@@ -511,7 +511,7 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
                   onClick={closeMobile}
                   className="block text-center text-sm font-semibold bg-[#1A1A2E] text-white px-4 py-3 min-h-[48px] rounded-full active:bg-[#2D2D44] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
                 >
-                  Jetzt starten
+                  Los geht's
                 </Link>
               </div>
             )}

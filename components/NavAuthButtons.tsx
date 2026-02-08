@@ -11,7 +11,7 @@ export default function NavAuthButtons() {
     return (
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-[#4A5568] px-4 py-2 invisible">Anmelden</span>
-        <span className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 rounded-full invisible">Jetzt starten</span>
+        <span className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 rounded-full invisible">Los geht's</span>
       </div>
     )
   }
@@ -54,7 +54,7 @@ export default function NavAuthButtons() {
         href="/jobs"
         className="text-sm font-semibold bg-[#1A1A2E] text-white px-4 sm:px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors"
       >
-        Jetzt starten
+        Los geht's
       </Link>
     </div>
   )
@@ -93,7 +93,7 @@ export function NavAuthButtonsMobile({ onNavigate }: { onNavigate?: () => void }
         Anmelden
       </Link>
       <Link href="/jobs" onClick={onNavigate} className="block text-center text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-3 min-h-[48px] rounded-full active:bg-[#2D2D44] transition-colors">
-        Jetzt starten
+        Los geht's
       </Link>
     </div>
   )
