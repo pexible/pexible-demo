@@ -184,7 +184,7 @@ async function callClaudeOptimization(anonymizedText: string, language: string, 
     const client = new Anthropic()
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 6144,
       temperature: 0,
       system: CV_OPTIMIZATION_SYSTEM_PROMPT,
       messages: [
