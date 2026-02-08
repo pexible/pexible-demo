@@ -165,7 +165,9 @@ function OptimizationProgress({ phase }: { phase: string }) {
         Vergangene Zeit: {formatTime(elapsed)}
       </p>
       <p className="text-xs text-[#D1C9BD] mt-1">
-        Dies kann bis zu 2 Minuten dauern.
+        {elapsed < 120
+          ? 'Dies kann einige Minuten dauern.'
+          : 'Dein Lebenslauf wird gerade gründlich überarbeitet – bitte habe noch einen Moment Geduld.'}
       </p>
     </div>
   )

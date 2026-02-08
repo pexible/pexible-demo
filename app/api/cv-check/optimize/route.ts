@@ -93,9 +93,21 @@ export async function POST(req: Request) {
       try {
         // Step 1: Optimize the CV
         send({ type: 'progress', phase: 'optimizing' })
-        const optimizationResult = await callClaudeOptimization(tokenEntry.anonymizedText, tokenEntry.language)
+        let lastOptError = ''
+        const optimizationResult = await callClaudeOptimization(
+          tokenEntry.anonymizedText,
+          tokenEntry.language,
+          (attempt, maxAttempts, error) => {
+            if (error) {
+              lastOptError = error
+              send({ type: 'progress', phase: 'optimizing', detail: `Versuch ${attempt}/${maxAttempts}: ${error}` })
+            } else {
+              send({ type: 'progress', phase: 'optimizing', detail: `Neuer Versuch (${attempt}/${maxAttempts})...` })
+            }
+          },
+        )
         if (!optimizationResult) {
-          send({ type: 'error', error: 'Bei der Optimierung ist ein Fehler aufgetreten. Bitte kontaktiere unseren Support.' })
+          send({ type: 'error', error: `Bei der Optimierung ist ein Fehler aufgetreten (${lastOptError || 'unbekannt'}). Bitte kontaktiere unseren Support.` })
           controller.close()
           return
         }
@@ -217,53 +229,108 @@ function normalizeText(text: string): string {
   return r.trim()
 }
 
-async function callClaudeOptimization(anonymizedText: string, language: string, attempt = 0): Promise<OptimizationResult | null> {
-  if (attempt >= 3) return null
+// Extract the outermost JSON object from text that may include preamble (e.g.
+// Claude's self-check reasoning before the actual JSON output).
+function extractJson(text: string): string | null {
+  // First try: strip markdown fences and parse directly
+  const cleaned = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
+  try {
+    JSON.parse(cleaned)
+    return cleaned
+  } catch {
+    // Fall through to bracket matching
+  }
+
+  // Second try: find the first '{' and match to the last '}'
+  const firstBrace = text.indexOf('{')
+  const lastBrace = text.lastIndexOf('}')
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null
+
+  const candidate = text.slice(firstBrace, lastBrace + 1)
+  try {
+    JSON.parse(candidate)
+    return candidate
+  } catch {
+    return null
+  }
+}
+
+async function callClaudeOptimization(
+  anonymizedText: string,
+  language: string,
+  onAttempt?: (attempt: number, maxAttempts: number, error?: string) => void,
+): Promise<OptimizationResult | null> {
+  const maxAttempts = 2
 
   const isEnglish = language === 'en'
   const userPrompt = isEnglish
     ? `Optimize the following CV according to your instructions. The CV is in English — respond entirely in English:\n\n---\n${anonymizedText}\n---`
     : `Optimiere den folgenden Lebenslauf gemäß deinen Anweisungen:\n\n---\n${anonymizedText}\n---`
 
-  try {
-    const client = new Anthropic()
-    const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 6144,
-      temperature: 0,
-      system: CV_OPTIMIZATION_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-    })
-
-    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0) {
+      onAttempt?.(attempt + 1, maxAttempts)
+    }
 
     try {
-      const cleaned = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim()
-      const parsed: OptimizationResult = JSON.parse(cleaned)
+      const client = new Anthropic()
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16384,
+        temperature: 0,
+        system: CV_OPTIMIZATION_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
+      })
 
-      if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
-        return callClaudeOptimization(anonymizedText, language, attempt + 1)
+      const rawText = message.content[0].type === 'text' ? message.content[0].text : ''
+
+      // Check if output was truncated — JSON will be incomplete
+      if (message.stop_reason === 'max_tokens') {
+        onAttempt?.(attempt + 1, maxAttempts, 'Output truncated (max_tokens reached)')
+        continue
       }
 
+      // Extract JSON — handles preamble text (self-check) before JSON
+      const jsonStr = extractJson(rawText)
+      if (!jsonStr) {
+        onAttempt?.(attempt + 1, maxAttempts, 'No valid JSON found in response')
+        continue
+      }
+
+      let parsed: OptimizationResult
+      try {
+        parsed = JSON.parse(jsonStr)
+      } catch {
+        onAttempt?.(attempt + 1, maxAttempts, 'JSON parse failed')
+        continue
+      }
+
+      if (!Array.isArray(parsed.sections) || parsed.sections.length === 0) {
+        onAttempt?.(attempt + 1, maxAttempts, 'No sections in response')
+        continue
+      }
+
+      let validSections = true
       for (const section of parsed.sections) {
         if (!section.name || !section.content) {
-          return callClaudeOptimization(anonymizedText, language, attempt + 1)
+          validSections = false
+          break
         }
+      }
+      if (!validSections) {
+        onAttempt?.(attempt + 1, maxAttempts, 'Invalid section structure')
+        continue
       }
 
       if (!Array.isArray(parsed.changes_summary)) parsed.changes_summary = []
       if (!Array.isArray(parsed.placeholders)) parsed.placeholders = []
 
       return parsed
-    } catch {
-      return callClaudeOptimization(anonymizedText, language, attempt + 1)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown API error'
+      onAttempt?.(attempt + 1, maxAttempts, errorMsg)
     }
-  } catch {
-    return callClaudeOptimization(anonymizedText, language, attempt + 1)
   }
+
+  return null
 }
