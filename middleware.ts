@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
   // Redirect unauthenticated users on protected routes
   const pathname = request.nextUrl.pathname
   const isProtected =
+    pathname.startsWith('/mein-pex') ||  // unified dashboard
     pathname.match(/^\/chat\/.+/) ||   // /chat/{id} but NOT /chat
     pathname.startsWith('/upload') ||
     pathname.startsWith('/api/upload') ||
@@ -49,5 +50,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/chat/:path+', '/upload/:path*', '/api/upload/:path*', '/api/conversations/:path*', '/cv-check/result/:path*', '/cv-check/optimize/:path*', '/api/cv-check/results/:path*', '/api/cv-check/download/:path*', '/api/cv-check/optimize/:path*', '/api/cv-check/create-checkout/:path*'],
+  matcher: ['/mein-pex/:path*', '/chat/:path+', '/upload/:path*', '/api/upload/:path*', '/api/conversations/:path*', '/cv-check/result/:path*', '/cv-check/optimize/:path*', '/api/cv-check/results/:path*', '/api/cv-check/download/:path*', '/api/cv-check/optimize/:path*', '/api/cv-check/create-checkout/:path*'],
 }
