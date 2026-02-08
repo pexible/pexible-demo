@@ -79,21 +79,17 @@ export async function POST(req: Request) {
       )
     }
 
-    // Step 2: Re-insert contact data into optimized sections
-    for (const section of optimizationResult.sections) {
-      section.content = reinsertContactData(section.content, tokenEntry.originalContactData)
-    }
-    for (const change of optimizationResult.changes_summary) {
-      change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
-    }
-
-    // Step 3: Re-analyze the optimized CV with score-drop protection.
-    // Normalize the reassembled text so the scorer sees the same whitespace
-    // conventions as the original PDF extraction path.
+    // Step 2: Re-analyze BEFORE reinserting contact data.
+    // The original analysis scored anonymized text ([NAME], [EMAIL] etc.),
+    // so the re-analysis must also use anonymized text for consistent scoring.
     const rawPlaintext = optimizationResult.sections
       .map((s) => `${s.name}\n\n${s.content}`)
       .join('\n\n')
-    const optimizedPlaintext = normalizeText(rawPlaintext)
+    // Strip optimization placeholders — the scorer counts "concrete numbers"
+    // and [Please add: X] / [Bitte ergänzen: X] would count as vague text.
+    const scoringText = normalizeText(rawPlaintext)
+      .replace(/\[(?:Bitte ergänzen|Please add):?\s*[^\]]*\]/gi, '')
+      .replace(/  +/g, ' ')
 
     const originalAts = original_score_data?.ats ?? 0
     const originalContent = original_score_data?.content ?? 0
@@ -104,7 +100,7 @@ export async function POST(req: Request) {
 
     // Re-analyze the optimized text, then floor-clamp so scores never regress.
     try {
-      const reAnalysis = await analyzeCV(optimizedPlaintext)
+      const reAnalysis = await analyzeCV(scoringText)
       if (reAnalysis) {
         // Floor clamp: ensure scores never drop below original
         optimizedAts = Math.max(reAnalysis.ats_score.total, originalAts)
@@ -113,6 +109,14 @@ export async function POST(req: Request) {
       }
     } catch {
       // Re-analysis failed — continue without optimized scores
+    }
+
+    // Step 3: Re-insert contact data into optimized sections (for final result)
+    for (const section of optimizationResult.sections) {
+      section.content = reinsertContactData(section.content, tokenEntry.originalContactData)
+    }
+    for (const change of optimizationResult.changes_summary) {
+      change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
     // Step 4: Store result in Supabase
