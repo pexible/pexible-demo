@@ -9,7 +9,6 @@ import { reinsertContactData } from '@/lib/cv-anonymize'
 import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { analyzeCV } from '@/lib/cv-analysis'
-import { reassembleOptimizedText } from '@/lib/cv-text-normalize'
 
 export const maxDuration = 60 // Allow up to 60 seconds for this route
 
@@ -88,10 +87,11 @@ export async function POST(req: Request) {
       change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
-    // Step 3: Re-analyze the optimized CV with 3-stage score validation.
-    // Stage 1 (accept): both scores >= original. Stage 2 (retry): re-analyze
-    // and take best per dimension. Stage 3 (floor): clamp to original.
-    const optimizedPlaintext = reassembleOptimizedText(optimizationResult.sections)
+    // Step 3: Re-analyze the optimized CV for real scores
+    // Build plaintext from optimized sections for analysis
+    const optimizedPlaintext = optimizationResult.sections
+      .map((s) => `${s.name}\n${s.content}`)
+      .join('\n\n')
 
     const originalAts = original_score_data?.ats ?? 0
     const originalContent = original_score_data?.content ?? 0
@@ -100,42 +100,20 @@ export async function POST(req: Request) {
     let optimizedContent: number | null = null
     let optimizedScoreDetails: { ats: number; content: number } | null = null
 
+    // Re-analysis: run the same analysis prompt on the optimized text.
+    // If this fails, the optimization is still valid — we just won't have scores.
     try {
-      const firstAnalysis = await analyzeCV(optimizedPlaintext)
-      if (firstAnalysis) {
-        let bestAts = firstAnalysis.ats_score.total
-        let bestContent = firstAnalysis.content_score.total
-        let stage: string = 'accepted'
-
-        // If a score dropped, retry once and take the best per dimension
-        if (bestAts < originalAts || bestContent < originalContent) {
-          stage = 'retried'
-          try {
-            const secondAnalysis = await analyzeCV(optimizedPlaintext)
-            if (secondAnalysis) {
-              bestAts = Math.max(bestAts, secondAnalysis.ats_score.total)
-              bestContent = Math.max(bestContent, secondAnalysis.content_score.total)
-            }
-          } catch {
-            // Retry failed — use first attempt scores
-          }
+      const reAnalysis = await analyzeCV(optimizedPlaintext)
+      if (reAnalysis) {
+        optimizedAts = reAnalysis.ats_score.total
+        optimizedContent = reAnalysis.content_score.total
+        optimizedScoreDetails = {
+          ats: reAnalysis.ats_score.total,
+          content: reAnalysis.content_score.total,
         }
-
-        // Floor: ensure scores never drop below original
-        if (bestAts < originalAts || bestContent < originalContent) {
-          stage = 'floor_applied'
-          bestAts = Math.max(bestAts, originalAts)
-          bestContent = Math.max(bestContent, originalContent)
-        }
-
-        console.log(`[cv-score-validation] stage=${stage} ats=${originalAts}->${bestAts} content=${originalContent}->${bestContent}`)
-
-        optimizedAts = bestAts
-        optimizedContent = bestContent
-        optimizedScoreDetails = { ats: bestAts, content: bestContent }
       }
     } catch {
-      // Re-analysis failed entirely — continue without optimized scores
+      // Re-analysis failed — continue without optimized scores
     }
 
     // Step 4: Store result in Supabase
