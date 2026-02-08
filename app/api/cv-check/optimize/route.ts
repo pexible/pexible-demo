@@ -229,6 +229,13 @@ function normalizeText(text: string): string {
   return r.trim()
 }
 
+// Sanitize common JSON issues that LLMs produce (trailing commas, etc.)
+function sanitizeJson(text: string): string {
+  return text
+    .replace(/,\s*}/g, '}')     // trailing comma before }
+    .replace(/,\s*\]/g, ']')    // trailing comma before ]
+}
+
 // Extract the outermost JSON object from text that may include preamble (e.g.
 // Claude's self-check reasoning before the actual JSON output).
 function extractJson(text: string): string | null {
@@ -238,7 +245,14 @@ function extractJson(text: string): string | null {
     JSON.parse(cleaned)
     return cleaned
   } catch {
-    // Fall through to bracket matching
+    // Try sanitized version
+    const sanitized = sanitizeJson(cleaned)
+    try {
+      JSON.parse(sanitized)
+      return sanitized
+    } catch {
+      // Fall through to bracket matching
+    }
   }
 
   // Second try: find the first '{' and match to the last '}'
@@ -251,7 +265,14 @@ function extractJson(text: string): string | null {
     JSON.parse(candidate)
     return candidate
   } catch {
-    return null
+    // Try sanitized version
+    const sanitized = sanitizeJson(candidate)
+    try {
+      JSON.parse(sanitized)
+      return sanitized
+    } catch {
+      return null
+    }
   }
 }
 
@@ -293,7 +314,8 @@ async function callClaudeOptimization(
       // Extract JSON — handles preamble text (self-check) before JSON
       const jsonStr = extractJson(rawText)
       if (!jsonStr) {
-        onAttempt?.(attempt + 1, maxAttempts, 'No valid JSON found in response')
+        const preview = rawText.slice(0, 200).replace(/\n/g, '\\n')
+        onAttempt?.(attempt + 1, maxAttempts, `No valid JSON found. Response starts with: ${preview}`)
         continue
       }
 

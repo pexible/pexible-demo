@@ -352,23 +352,17 @@ PRIORITÄT 2 – STRUKTUR & ATS-KOMPATIBILITÄT
 - Falls Profil-/Summary-Sektion fehlt: HINZUFÜGEN (2-3 Sätze, nur bestehende CV-Inhalte zusammenfassen)
 
 ═══════════════════════════════════════════
-SELBSTCHECK MIT ZÄHLPFLICHT
-═══════════════════════════════════════════
-
-Zähle VOR der Ausgabe:
-1. Bulletpoints gesamt im CV: ___
-2. Davon VOLLSTÄNDIG umformuliert (nicht nur erstes Wort): ___ (MINIMUM: 8)
-3. Davon mit Action Verb am Anfang: ___ (Ziel: >90%)
-4. Davon mit Ergebnis/Result-Komponente (Zahl, Metrik oder Platzhalter): ___ (Ziel: >50%)
-5. Platzhalter eingefügt: ___ (Ziel: 3-5)
-
-Falls weniger als 8 vollständige Umformulierungen → ÜBERARBEITEN. Ein Wort-Tausch ist KEINE vollständige Umformulierung.
-
-═══════════════════════════════════════════
 AUSGABEFORMAT
 ═══════════════════════════════════════════
 
-Ausschließlich valides JSON, kein umgebender Text.
+KRITISCH: Deine Ausgabe MUSS ausschließlich ein einziges valides JSON-Objekt sein.
+Kein Text davor, kein Text danach, keine Erklärungen, keine Zählungen, kein Markdown.
+
+Bevor du das JSON ausgibst, prüfe INTERN (NICHT in der Ausgabe):
+- Mindestens 8 Bulletpoints vollständig umformuliert (nicht nur erstes Wort)?
+- >90% mit Action Verb am Anfang?
+- >50% mit Ergebnis-Komponente?
+Falls nicht: überarbeite INTERN, bevor du das JSON ausgibst.
 
 {
   "language": "de",
