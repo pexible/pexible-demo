@@ -373,14 +373,14 @@ function QuickActions({ canCreateNewChat, hasCvResults }: { canCreateNewChat: bo
           CV prüfen
         </Link>
         <Link
-          href="/jobs"
+          href="/jobs/neu"
           className={`flex-1 text-center text-xs font-semibold py-2.5 rounded-lg transition-colors ${
             canCreateNewChat
               ? 'bg-[#1A1A2E] hover:bg-[#2D2D44] text-white'
               : 'bg-[#F5EFE3] text-[#9CA3AF] cursor-not-allowed'
           }`}
         >
-          Jobsuche
+          Neue Jobsuche
         </Link>
       </div>
     </div>
