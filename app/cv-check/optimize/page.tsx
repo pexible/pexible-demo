@@ -108,6 +108,7 @@ function OptimizationProgress({ phase }: { phase: string }) {
   const phases = [
     { key: 'optimizing', label: 'Dein Lebenslauf wird optimiert...' },
     { key: 'formulating', label: 'Formulierungen werden überarbeitet...' },
+    { key: 'quality', label: 'Qualität wird geprüft...' },
     { key: 'creating', label: 'Dokumente werden erstellt...' },
     { key: 'finishing', label: 'Fast fertig...' },
   ]
@@ -216,8 +217,9 @@ function OptimizeContent() {
 
     const phaseTimers: NodeJS.Timeout[] = []
     phaseTimers.push(setTimeout(() => setOptimizationPhase('formulating'), 5000))
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('creating'), 15000))
-    phaseTimers.push(setTimeout(() => setOptimizationPhase('finishing'), 25000))
+    phaseTimers.push(setTimeout(() => setOptimizationPhase('quality'), 15000))
+    phaseTimers.push(setTimeout(() => setOptimizationPhase('creating'), 25000))
+    phaseTimers.push(setTimeout(() => setOptimizationPhase('finishing'), 35000))
 
     try {
       const res = await fetch('/api/cv-check/optimize', {

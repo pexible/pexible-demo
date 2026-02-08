@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import Footer from '@/components/Footer'
+import { getScoreColor, getScoreLabel } from '@/lib/cv-score-utils'
 
 // --- Types ---
 
@@ -51,19 +52,7 @@ const CONTENT_CATEGORY_LABELS: Record<string, string> = {
   coherence_career: 'Kohärenz & Karrierestory',
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 80) return '#22C55E' // green
-  if (score >= 60) return '#EAB308' // yellow
-  if (score >= 40) return '#F97316' // orange
-  return '#EF4444' // red
-}
-
-function getScoreLabel(score: number): string {
-  if (score >= 80) return 'Sehr gut'
-  if (score >= 60) return 'Gut'
-  if (score >= 40) return 'Ausbaufähig'
-  return 'Überarbeitungsbedarf'
-}
+// getScoreColor and getScoreLabel imported from @/lib/cv-score-utils
 
 // --- Score Ring Component ---
 

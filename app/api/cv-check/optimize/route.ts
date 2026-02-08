@@ -8,6 +8,7 @@ import { retrieveToken, deleteToken } from '@/lib/cv-token-store'
 import { reinsertContactData } from '@/lib/cv-anonymize'
 import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { analyzeCV } from '@/lib/cv-analysis'
 
 export const maxDuration = 60 // Allow up to 60 seconds for this route
 
@@ -86,25 +87,34 @@ export async function POST(req: Request) {
       change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
-    // Step 3: Calculate optimized scores (two-dimensional)
+    // Step 3: Re-analyze the optimized CV for real scores
+    // Build plaintext from optimized sections for analysis
+    const optimizedPlaintext = optimizationResult.sections
+      .map((s) => `${s.name}\n${s.content}`)
+      .join('\n\n')
+
     const originalAts = original_score_data?.ats ?? 0
     const originalContent = original_score_data?.content ?? 0
-    const changeCount = optimizationResult.changes_summary.length
 
-    // ATS score: Our optimization always standardizes sections, formatting, keywords.
-    // The optimized CV should score very high on ATS (≥90).
-    const optimizedAts = Math.max(
-      originalAts,
-      Math.min(100, Math.max(90, originalAts + Math.round(changeCount * 1.5 + 10)))
-    )
+    let optimizedAts: number | null = null
+    let optimizedContent: number | null = null
+    let optimizedScoreDetails: { ats: number; content: number } | null = null
 
-    // Content score: We improve action verbs and formatting but don't change content.
-    // Small improvement based on structural changes.
-    const contentImprovement = Math.min(
-      15,
-      Math.round(changeCount * 1.0 + optimizationResult.placeholders.length * 0.5 + 3)
-    )
-    const optimizedContent = Math.min(100, originalContent + contentImprovement)
+    // Re-analysis: run the same analysis prompt on the optimized text.
+    // If this fails, the optimization is still valid — we just won't have scores.
+    try {
+      const reAnalysis = await analyzeCV(optimizedPlaintext)
+      if (reAnalysis) {
+        optimizedAts = reAnalysis.ats_score.total
+        optimizedContent = reAnalysis.content_score.total
+        optimizedScoreDetails = {
+          ats: reAnalysis.ats_score.total,
+          content: reAnalysis.content_score.total,
+        }
+      }
+    } catch {
+      // Re-analysis failed — continue without optimized scores
+    }
 
     // Step 4: Store result in Supabase
     const resultId = nanoid()
@@ -119,11 +129,8 @@ export async function POST(req: Request) {
         created_at: now,
         original_score: originalAts, // backward compat: store ATS score as primary
         original_score_details: original_score_data ?? null,
-        optimized_score: optimizedAts,
-        optimized_score_details: {
-          ats: optimizedAts,
-          content: optimizedContent,
-        },
+        optimized_score: optimizedAts ?? 0,
+        optimized_score_details: optimizedScoreDetails,
         changes_summary: optimizationResult.changes_summary,
         placeholders: optimizationResult.placeholders,
         tips: tips ?? null,

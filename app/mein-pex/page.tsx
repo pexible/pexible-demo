@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useUser } from '@/lib/hooks/useUser'
+import { getScoreColorClass, getScoreBgClass, parseScoreData } from '@/lib/cv-score-utils'
 
 // ─── Types ───
 
@@ -23,7 +24,9 @@ interface CvResultItem {
   id: string
   created_at: string
   original_score: number
+  original_score_details?: { ats?: number; content?: number } | null
   optimized_score: number
+  optimized_score_details?: { ats?: number; content?: number } | null
   status: string
   files_expire_at: string
   files_available: boolean
@@ -48,19 +51,7 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 80) return 'text-emerald-600'
-  if (score >= 60) return 'text-yellow-600'
-  if (score >= 40) return 'text-orange-500'
-  return 'text-red-500'
-}
-
-function getScoreBg(score: number): string {
-  if (score >= 80) return 'bg-emerald-50 border-emerald-200'
-  if (score >= 60) return 'bg-yellow-50 border-yellow-200'
-  if (score >= 40) return 'bg-orange-50 border-orange-200'
-  return 'bg-red-50 border-red-200'
-}
+// getScoreColorClass and getScoreBgClass imported from @/lib/cv-score-utils
 
 // ─── Main Page ───
 
@@ -298,8 +289,21 @@ function ConversationCard({ conversation }: { conversation: ConversationItem }) 
 }
 
 function CvResultCard({ result }: { result: CvResultItem }) {
+  const scores = parseScoreData(result)
   const isOptimized = result.optimized_score > 0
-  const displayScore = isOptimized ? result.optimized_score : result.original_score
+
+  // Determine display score based on format
+  let displayScore: number
+  let scoreLabel: string
+  if (scores.kind === 'legacy') {
+    displayScore = scores.optimizedScore ?? scores.originalScore
+    scoreLabel = 'Score'
+  } else {
+    // New format: show ATS score (the primary optimized metric)
+    displayScore = scores.optimizedAts ?? scores.originalAts
+    scoreLabel = 'ATS'
+  }
+
   const dateStr = new Date(result.created_at).toLocaleDateString('de-DE', {
     day: '2-digit',
     month: '2-digit',
@@ -332,11 +336,11 @@ function CvResultCard({ result }: { result: CvResultItem }) {
             </div>
           </div>
           {/* Score badge */}
-          <div className={`flex-shrink-0 px-3 py-1.5 rounded-lg border ${getScoreBg(displayScore)}`}>
-            <span className={`text-lg font-bold ${getScoreColor(displayScore)}`}>
+          <div className={`flex-shrink-0 px-3 py-1.5 rounded-lg border ${getScoreBgClass(displayScore)}`}>
+            <span className={`text-lg font-bold ${getScoreColorClass(displayScore)}`}>
               {displayScore}
             </span>
-            <span className="text-xs text-[#9CA3AF] ml-0.5">/100</span>
+            <span className="text-xs text-[#9CA3AF] ml-0.5">/{scoreLabel === 'ATS' ? 'ATS' : '100'}</span>
           </div>
         </div>
       </div>
