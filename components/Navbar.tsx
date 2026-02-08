@@ -270,6 +270,16 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
 
             {/* ── Desktop: right side ── */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Search icon */}
+              <Link
+                href="/suche"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#4A5568] hover:text-[#1A1A2E] rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
+                aria-label="Suche"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </Link>
               {isLoading ? (
                 <div className="flex items-center gap-3">
                   <span className="text-sm px-4 py-2 invisible">Anmelden</span>
@@ -446,6 +456,17 @@ export default function Navbar({ variant = 'default', backHref = '/jobs', backLa
                   </li>
                 )
               })}
+              <li>
+                <Link
+                  href="/suche"
+                  onClick={closeMobile}
+                  className={mobileLinkClass(isActive('/suche'))}
+                  {...(isActive('/suche') ? { 'aria-current': 'page' as const } : {})}
+                >
+                  <NavIcon path="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  Suche
+                </Link>
+              </li>
             </ul>
 
             {/* ── Section 2: Guest anchors (not logged in, on landing page) ── */}
