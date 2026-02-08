@@ -22,11 +22,6 @@ export interface NavItem {
 
 export const serviceNavItems: NavItem[] = [
   {
-    href: '/chat',
-    label: 'Job-Suche',
-    iconPath: 'M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z',
-  },
-  {
     href: '/cv-check',
     label: 'CV-Check',
     iconPath: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
@@ -91,7 +86,7 @@ export const footerGroups: FooterGroup[] = [
   {
     title: 'Produkt',
     links: [
-      { href: '/chat', label: 'Job-Suche' },
+      { href: '/chat', label: 'Mein Pex' },
       { href: '/cv-check', label: 'CV-Check' },
       { href: '/#funktionen', label: 'Funktionen' },
       { href: '/#so-funktionierts', label: "So funktioniert\u2019s" },
