@@ -133,9 +133,15 @@ export async function POST(req: Request) {
     const cvTextToken = nanoid()
     await storeToken(cvTextToken, normalizedText, contactData, analysisResult.language || 'de')
 
+    // If both scores are already excellent, optimization adds little value
+    const atsTotal = analysisResult.ats_score.total
+    const contentTotal = analysisResult.content_score.total
+    const optimizationRecommended = atsTotal < 85 || contentTotal < 85
+
     return NextResponse.json({
       ...analysisResult,
       cv_text_token: cvTextToken,
+      optimization_recommended: optimizationRecommended,
     })
   } catch {
     return NextResponse.json(
