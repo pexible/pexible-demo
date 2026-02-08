@@ -78,6 +78,7 @@ function ChatListView() {
   const [isCreating, setIsCreating] = useState(false)
   const [canCreateNew, setCanCreateNew] = useState(true)
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null)
+  const [activeSubTab, setActiveSubTab] = useState<'searches' | 'saved'>('searches')
 
   useEffect(() => {
     fetch('/api/conversations')
@@ -145,8 +146,48 @@ function ChatListView() {
       <Navbar />
       <Breadcrumbs />
 
+      {/* Sub-Tabs */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4">
+        <div className="flex gap-1 bg-[#F5EFE3] rounded-xl p-1">
+          <button
+            onClick={() => setActiveSubTab('searches')}
+            className={`flex-1 text-sm font-medium py-2.5 px-4 rounded-lg transition-all ${
+              activeSubTab === 'searches'
+                ? 'bg-white text-[#1A1A2E] shadow-sm'
+                : 'text-[#4A5568] hover:text-[#1A1A2E]'
+            }`}
+          >
+            Meine Jobsuchen
+          </button>
+          <button
+            onClick={() => setActiveSubTab('saved')}
+            className={`flex-1 text-sm font-medium py-2.5 px-4 rounded-lg transition-all ${
+              activeSubTab === 'saved'
+                ? 'bg-white text-[#1A1A2E] shadow-sm'
+                : 'text-[#4A5568] hover:text-[#1A1A2E]'
+            }`}
+          >
+            Gespeicherte Jobs
+          </button>
+        </div>
+      </div>
+
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        {activeSubTab === 'saved' ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-[#F5EFE3] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[#D1C9BD]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-[#1A1A2E] mb-1">Noch keine gespeicherten Jobs</h2>
+            <p className="text-sm text-[#4A5568] max-w-xs mx-auto">
+              Speichere interessante Stellen aus deinen Suchergebnissen, um sie später wiederzufinden.
+            </p>
+          </div>
+        ) : (
+        <>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Meine Jobsuchen</h1>
@@ -300,6 +341,8 @@ function ChatListView() {
           <div className="text-center py-12">
             <p className="text-sm text-[#9CA3AF]">Keine Jobsuchen gefunden f&uuml;r &ldquo;{search}&rdquo;</p>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
