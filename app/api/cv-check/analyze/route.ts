@@ -4,6 +4,7 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { anonymizeCvText } from '@/lib/cv-anonymize'
 import { storeToken } from '@/lib/cv-token-store'
 import { analyzeCV } from '@/lib/cv-analysis'
+import { normalizeExtractedText } from '@/lib/cv-text-normalize'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46, 0x2d] // %PDF-
@@ -115,8 +116,11 @@ export async function POST(req: Request) {
     // Anonymize before sending to LLM
     const { anonymizedText, contactData } = anonymizeCvText(extractedText)
 
+    // Normalize formatting so PDF artifacts don't inflate/deflate scores
+    const normalizedText = normalizeExtractedText(anonymizedText)
+
     // Call Claude for analysis (shared module)
-    const analysisResult = await analyzeCV(anonymizedText)
+    const analysisResult = await analyzeCV(normalizedText)
 
     if (!analysisResult) {
       return NextResponse.json(
@@ -127,7 +131,7 @@ export async function POST(req: Request) {
 
     // Store token for potential Stufe 2 optimization (including detected language)
     const cvTextToken = nanoid()
-    await storeToken(cvTextToken, anonymizedText, contactData, analysisResult.language || 'de')
+    await storeToken(cvTextToken, normalizedText, contactData, analysisResult.language || 'de')
 
     return NextResponse.json({
       ...analysisResult,

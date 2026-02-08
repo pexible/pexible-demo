@@ -9,6 +9,7 @@ import { reinsertContactData } from '@/lib/cv-anonymize'
 import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { analyzeCV } from '@/lib/cv-analysis'
+import { reassembleOptimizedText } from '@/lib/cv-text-normalize'
 
 export const maxDuration = 60 // Allow up to 60 seconds for this route
 
@@ -88,10 +89,8 @@ export async function POST(req: Request) {
     }
 
     // Step 3: Re-analyze the optimized CV for real scores
-    // Build plaintext from optimized sections for analysis
-    const optimizedPlaintext = optimizationResult.sections
-      .map((s) => `${s.name}\n${s.content}`)
-      .join('\n\n')
+    // Build plaintext from optimized sections with same normalization as original
+    const optimizedPlaintext = reassembleOptimizedText(optimizationResult.sections)
 
     const originalAts = original_score_data?.ats ?? 0
     const originalContent = original_score_data?.content ?? 0
