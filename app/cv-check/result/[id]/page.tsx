@@ -79,7 +79,7 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
               {error}
             </div>
             <Link href="/cv-check" className="text-[#F5B731] hover:text-[#E8930C] font-medium text-sm">
-              Zurück zum CV-Check
+              Zurück zum Lebenslauf-Check
             </Link>
           </div>
         ) : result ? (
@@ -182,7 +182,7 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
             {/* Back link */}
             <div className="text-center">
               <Link href="/cv-check" className="text-sm text-[#4A5568] hover:text-[#1A1A2E] transition-colors">
-                ← Zurück zum CV-Check
+                ← Zurück zum Lebenslauf-Check
               </Link>
             </div>
           </div>

@@ -149,7 +149,7 @@ function DashboardView({ userName }: { userName: string }) {
   const tabs: Array<{ key: Tab; label: string; count: number }> = [
     { key: 'all', label: 'Alle', count: totalConvos + totalCvChecks },
     { key: 'jobs', label: totalConvos === 1 ? 'Jobsuche' : 'Jobsuchen', count: totalConvos },
-    { key: 'cv', label: 'CV-Checks', count: totalCvChecks },
+    { key: 'cv', label: 'Lebenslauf-Checks', count: totalCvChecks },
   ]
 
   return (
@@ -176,7 +176,7 @@ function DashboardView({ userName }: { userName: string }) {
           />
           <StatCard
             icon={<CvIcon />}
-            label="CV-Checks"
+            label="Lebenslauf-Checks"
             value={isLoading ? '–' : String(totalCvChecks)}
           />
           <div className="col-span-2 sm:col-span-1">
@@ -316,7 +316,7 @@ function CvResultCard({ result }: { result: CvResultItem }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <h3 className="text-sm font-semibold text-[#1A1A2E] group-hover:text-[#F5B731] transition-colors">
-                CV-Check
+                Lebenslauf-Check
               </h3>
               {isOptimized && (
                 <span className="flex-shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F5B731]/10 text-[#E8930C] border border-[#F5B731]/20">
@@ -370,7 +370,7 @@ function QuickActions({ canCreateNewChat, hasCvResults }: { canCreateNewChat: bo
           href="/cv-check"
           className="flex-1 text-center text-xs font-semibold bg-[#F5B731] hover:bg-[#E8930C] text-white py-2.5 rounded-lg transition-colors"
         >
-          CV prüfen
+          Lebenslauf prüfen
         </Link>
         <Link
           href="/jobs"
@@ -395,7 +395,7 @@ function EmptyState({ type }: { type: 'all' | 'jobs' | 'cv' }) {
       icon: <EmptyIcon />,
       title: 'Noch keine Aktivitäten',
       description: 'Starte jetzt deine erste Jobsuche oder prüfe deinen Lebenslauf.',
-      cta: { label: 'CV-Check starten', href: '/cv-check' },
+      cta: { label: 'Lebenslauf-Check starten', href: '/cv-check' },
     },
     jobs: {
       icon: <ChatIcon className="w-8 h-8 text-[#D1C9BD]" />,
@@ -405,9 +405,9 @@ function EmptyState({ type }: { type: 'all' | 'jobs' | 'cv' }) {
     },
     cv: {
       icon: <CvIcon className="w-8 h-8 text-[#D1C9BD]" />,
-      title: 'Noch keine CV-Checks',
+      title: 'Noch keine Lebenslauf-Checks',
       description: 'Lass deinen Lebenslauf kostenlos analysieren und optimieren.',
-      cta: { label: 'CV-Check starten', href: '/cv-check' },
+      cta: { label: 'Lebenslauf-Check starten', href: '/cv-check' },
     },
   }
 

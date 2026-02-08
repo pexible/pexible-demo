@@ -397,7 +397,7 @@ export default function CvCheckPage() {
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">
-            Kostenloser CV-Check
+            Kostenloser Lebenslauf-Check
           </h1>
           <p className="text-[#4A5568] text-base sm:text-lg max-w-2xl mx-auto">
             Lade deinen Lebenslauf hoch und erhalte sofort einen ATS-Kompatibilitäts-Score
@@ -557,7 +557,7 @@ export default function CvCheckPage() {
                 onClick={handleReset}
                 className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] px-5 py-2.5 rounded-xl border border-[#E8E0D4] hover:border-[#D1C9BD] transition-colors"
               >
-                Neuen CV prüfen
+                Neuen Lebenslauf prüfen
               </button>
               <Link
                 href="/jobs"
