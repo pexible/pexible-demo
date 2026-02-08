@@ -142,27 +142,25 @@ export async function POST(req: Request) {
   }
 }
 
-interface ScoreDetail {
+interface ScoreCategory {
   score: number
   max: number
   reasoning: string
 }
 
-interface CategoryScore {
-  score: number
-  max: number
-  details: Record<string, ScoreDetail>
+interface DimensionScore {
+  total: number
+  categories: Record<string, ScoreCategory>
 }
 
 interface AnalysisResult {
   language: string
-  score: {
-    total: number
-    categories: Record<string, CategoryScore>
-  }
+  ats_score: DimensionScore
+  content_score: DimensionScore
   tips: Array<{
     title: string
     description: string
+    dimension: string
     category: string
     impact: string
   }>
@@ -199,6 +197,11 @@ async function callClaudeAnalysis(anonymizedText: string, attempt = 0): Promise<
       return callClaudeAnalysis(anonymizedText, attempt + 1)
     }
 
+    // Validate two-dimensional structure
+    if (!parsed.ats_score?.categories || !parsed.content_score?.categories) {
+      return callClaudeAnalysis(anonymizedText, attempt + 1)
+    }
+
     // Validate and fix score consistency
     parsed = validateAndFixScores(parsed)
 
@@ -207,13 +210,20 @@ async function callClaudeAnalysis(anonymizedText: string, attempt = 0): Promise<
       return callClaudeAnalysis(anonymizedText, attempt + 1)
     }
 
-    const validCategories = ['ats_parsing', 'content_quality', 'completeness', 'formal_quality', 'overall_impression']
+    const validAtsCategories = ['section_recognition', 'structure_order', 'formatting_consistency', 'keywords_terminology']
+    const validContentCategories = ['content_quality', 'completeness', 'formal_quality', 'coherence_career']
+    const validDimensions = ['ats', 'content']
+
     for (const tip of parsed.tips) {
-      if (!tip.title || !tip.description || !tip.category || !tip.impact) {
+      if (!tip.title || !tip.description || !tip.dimension || !tip.category || !tip.impact) {
         return callClaudeAnalysis(anonymizedText, attempt + 1)
       }
-      if (!validCategories.includes(tip.category)) {
-        tip.category = validCategories[0] // fallback
+      if (!validDimensions.includes(tip.dimension)) {
+        tip.dimension = 'content' // fallback
+      }
+      const validCats = tip.dimension === 'ats' ? validAtsCategories : validContentCategories
+      if (!validCats.includes(tip.category)) {
+        tip.category = validCats[0] // fallback
       }
     }
 
@@ -224,35 +234,28 @@ async function callClaudeAnalysis(anonymizedText: string, attempt = 0): Promise<
 }
 
 function validateAndFixScores(result: AnalysisResult): AnalysisResult {
-  const categories = result.score?.categories
-  if (!categories) return result
-
-  // Fix each category: detail scores should sum to category score
-  for (const catKey of Object.keys(categories)) {
-    const cat = categories[catKey]
-    if (!cat?.details) continue
-
-    let detailSum = 0
-    for (const detKey of Object.keys(cat.details)) {
-      const detail = cat.details[detKey]
-      // Clamp detail score to max
-      if (detail.score > detail.max) {
-        detail.score = detail.max
-      }
-      if (detail.score < 0) {
-        detail.score = 0
-      }
-      detailSum += detail.score
-    }
-    cat.score = detailSum
-  }
-
-  // Fix total: should equal sum of category scores
-  let totalSum = 0
-  for (const catKey of Object.keys(categories)) {
-    totalSum += categories[catKey].score
-  }
-  result.score.total = totalSum
+  // Fix ATS dimension
+  fixDimensionScores(result.ats_score)
+  // Fix Content dimension
+  fixDimensionScores(result.content_score)
 
   return result
+}
+
+function fixDimensionScores(dimension: DimensionScore): void {
+  if (!dimension?.categories) return
+
+  let totalSum = 0
+  for (const catKey of Object.keys(dimension.categories)) {
+    const cat = dimension.categories[catKey]
+    // Clamp score to max
+    if (cat.score > cat.max) {
+      cat.score = cat.max
+    }
+    if (cat.score < 0) {
+      cat.score = 0
+    }
+    totalSum += cat.score
+  }
+  dimension.total = totalSum
 }

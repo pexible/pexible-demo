@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { cv_text_token, original_score, tips } = await req.json()
+    const { cv_text_token, original_score } = await req.json()
 
     if (!cv_text_token || typeof cv_text_token !== 'string') {
       return NextResponse.json(
@@ -61,7 +61,8 @@ export async function POST(req: Request) {
         type: 'cv_optimization',
         user_id: user.id,
         cv_text_token,
-        original_score: String(original_score?.total ?? ''),
+        original_ats_score: String(original_score?.ats ?? ''),
+        original_content_score: String(original_score?.content ?? ''),
       },
       automatic_payment_methods: { enabled: true },
       description: 'pexible CV-Optimierung',

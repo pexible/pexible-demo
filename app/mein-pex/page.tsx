@@ -50,15 +50,15 @@ function timeAgo(dateStr: string): string {
 
 function getScoreColor(score: number): string {
   if (score >= 80) return 'text-emerald-600'
-  if (score >= 70) return 'text-yellow-600'
-  if (score >= 50) return 'text-orange-500'
+  if (score >= 60) return 'text-yellow-600'
+  if (score >= 40) return 'text-orange-500'
   return 'text-red-500'
 }
 
 function getScoreBg(score: number): string {
   if (score >= 80) return 'bg-emerald-50 border-emerald-200'
-  if (score >= 70) return 'bg-yellow-50 border-yellow-200'
-  if (score >= 50) return 'bg-orange-50 border-orange-200'
+  if (score >= 60) return 'bg-yellow-50 border-yellow-200'
+  if (score >= 40) return 'bg-orange-50 border-orange-200'
   return 'bg-red-50 border-red-200'
 }
 

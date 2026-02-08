@@ -11,7 +11,9 @@ interface CvCheckResult {
   id: string
   created_at: string
   original_score: number
+  original_score_details: { ats?: number; content?: number } | null
   optimized_score: number
+  optimized_score_details: { ats?: number; content?: number } | null
   changes_summary: Array<{ before: string; after: string; reason: string }>
   placeholders: Array<{ location: string; placeholder_text: string; suggestion: string }>
   tips: Array<{ title: string; description: string; category: string; impact: string }>
@@ -22,9 +24,45 @@ interface CvCheckResult {
 
 function getScoreColor(score: number): string {
   if (score >= 80) return '#22C55E'
-  if (score >= 70) return '#EAB308'
-  if (score >= 50) return '#F97316'
+  if (score >= 60) return '#EAB308'
+  if (score >= 40) return '#F97316'
   return '#EF4444'
+}
+
+function ScoreComparison({
+  label,
+  before,
+  after,
+}: {
+  label: string
+  before: number
+  after: number
+}) {
+  return (
+    <div className="flex flex-col items-center">
+      <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider mb-3">{label}</span>
+      <div className="flex items-center gap-4 sm:gap-6">
+        <div className="text-center">
+          <span className="text-xs text-[#9CA3AF] block mb-1">Vorher</span>
+          <span className="text-2xl sm:text-3xl font-extrabold" style={{ color: getScoreColor(before) }}>
+            {before}
+          </span>
+        </div>
+        <svg className="w-6 h-6 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+        <div className="text-center">
+          <span className="text-xs text-[#9CA3AF] block mb-1">Nachher</span>
+          <span className="text-2xl sm:text-3xl font-extrabold" style={{ color: getScoreColor(after) }}>
+            {after}
+          </span>
+        </div>
+      </div>
+      {after > before && (
+        <span className="text-xs text-green-600 font-medium mt-1">+{after - before} Punkte</span>
+      )}
+    </div>
+  )
 }
 
 export default function CvCheckResultPage({ params }: { params: Promise<{ id: string }> }) {
@@ -64,6 +102,12 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
     fetchResult()
   }, [user, id])
 
+  // Extract two-dimensional scores from result
+  const originalAts = result?.original_score_details?.ats ?? result?.original_score ?? 0
+  const originalContent = result?.original_score_details?.content ?? 0
+  const optimizedAts = result?.optimized_score_details?.ats ?? result?.optimized_score ?? 0
+  const optimizedContent = result?.optimized_score_details?.content ?? 0
+
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
       <Navbar />
@@ -98,24 +142,12 @@ export default function CvCheckResultPage({ params }: { params: Promise<{ id: st
               </p>
             </div>
 
-            {/* Score Comparison */}
+            {/* Score Comparison — Two Dimensions */}
             <div className="bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5 p-6 sm:p-8">
-              <div className="flex items-center justify-center gap-6 sm:gap-10">
-                <div className="text-center">
-                  <span className="text-sm text-[#9CA3AF] block mb-1">Vorher</span>
-                  <span className="text-3xl sm:text-4xl font-extrabold" style={{ color: getScoreColor(result.original_score) }}>
-                    {result.original_score}
-                  </span>
-                </div>
-                <svg className="w-8 h-8 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-                <div className="text-center">
-                  <span className="text-sm text-[#9CA3AF] block mb-1">Nachher</span>
-                  <span className="text-3xl sm:text-4xl font-extrabold" style={{ color: getScoreColor(result.optimized_score) }}>
-                    {result.optimized_score}
-                  </span>
-                </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16">
+                <ScoreComparison label="ATS-Score" before={originalAts} after={optimizedAts} />
+                <div className="hidden sm:block w-px h-20 bg-[#E8E0D4]" />
+                <ScoreComparison label="Inhalts-Score" before={originalContent} after={optimizedContent} />
               </div>
             </div>
 
