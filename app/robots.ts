@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/', '/chat/', '/login', '/register', '/upload'],
+        disallow: ['/api/', '/jobs/', '/login', '/register', '/upload'],
       },
     ],
     sitemap: 'https://pexible.de/sitemap.xml',

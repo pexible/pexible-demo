@@ -1,14 +1,14 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Job-Makler Chat',
+  title: 'Meine Jobsuchen | pexible',
   robots: {
     index: false,
     follow: false,
   },
 }
 
-export default function ChatLayout({
+export default function JobsLayout({
   children,
 }: {
   children: React.ReactNode

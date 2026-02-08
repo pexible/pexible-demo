@@ -148,7 +148,7 @@ function DashboardView({ userName }: { userName: string }) {
 
   const tabs: Array<{ key: Tab; label: string; count: number }> = [
     { key: 'all', label: 'Alle', count: totalConvos + totalCvChecks },
-    { key: 'jobs', label: 'Jobsuche', count: totalConvos },
+    { key: 'jobs', label: totalConvos === 1 ? 'Jobsuche' : 'Jobsuchen', count: totalConvos },
     { key: 'cv', label: 'CV-Checks', count: totalCvChecks },
   ]
 
@@ -264,7 +264,7 @@ function ConversationCard({ conversation }: { conversation: ConversationItem }) 
   const isActive = conversation.status === 'active'
 
   return (
-    <Link href={`/chat/${conversation.id}`} className="block group">
+    <Link href={`/jobs/${conversation.id}`} className="block group">
       <div className="bg-white rounded-xl border border-[#E8E0D4]/80 p-4 sm:p-5 hover:border-[#F5B731]/40 hover:shadow-md transition-all">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#1A1A2E]/5 flex items-center justify-center">
@@ -373,14 +373,14 @@ function QuickActions({ canCreateNewChat, hasCvResults }: { canCreateNewChat: bo
           CV prüfen
         </Link>
         <Link
-          href="/chat"
+          href="/jobs"
           className={`flex-1 text-center text-xs font-semibold py-2.5 rounded-lg transition-colors ${
             canCreateNewChat
               ? 'bg-[#1A1A2E] hover:bg-[#2D2D44] text-white'
               : 'bg-[#F5EFE3] text-[#9CA3AF] cursor-not-allowed'
           }`}
         >
-          Jobsuche
+          Neue Jobsuche
         </Link>
       </div>
     </div>
@@ -401,7 +401,7 @@ function EmptyState({ type }: { type: 'all' | 'jobs' | 'cv' }) {
       icon: <ChatIcon className="w-8 h-8 text-[#D1C9BD]" />,
       title: 'Noch keine Jobsuchen',
       description: 'Unser KI-Assistent hilft dir, den perfekten Job zu finden.',
-      cta: { label: 'Jobsuche starten', href: '/chat' },
+      cta: { label: 'Jobsuche starten', href: '/jobs' },
     },
     cv: {
       icon: <CvIcon className="w-8 h-8 text-[#D1C9BD]" />,

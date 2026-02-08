@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import Breadcrumbs from '@/components/Breadcrumbs'
 
 // ─── Types ───
 
@@ -77,6 +78,7 @@ function ChatListView() {
   const [isCreating, setIsCreating] = useState(false)
   const [canCreateNew, setCanCreateNew] = useState(true)
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null)
+  const [activeSubTab, setActiveSubTab] = useState<'searches' | 'saved'>('searches')
 
   useEffect(() => {
     fetch('/api/conversations')
@@ -110,10 +112,10 @@ function ChatListView() {
         return
       }
       if (data.conversation?.id) {
-        router.push(`/chat/${data.conversation.id}`)
+        router.push(`/jobs/${data.conversation.id}`)
       } else {
         console.error('No conversation ID in response:', data)
-        alert('Fehler beim Erstellen des Chats')
+        alert('Fehler beim Erstellen der Jobsuche')
         setIsCreating(false)
       }
     } catch (err) {
@@ -142,12 +144,53 @@ function ChatListView() {
   return (
     <div className="min-h-screen bg-[#FDF8F0] text-[#1A1A2E]">
       <Navbar />
+      <Breadcrumbs />
+
+      {/* Sub-Tabs */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4">
+        <div className="flex gap-1 bg-[#F5EFE3] rounded-xl p-1">
+          <button
+            onClick={() => setActiveSubTab('searches')}
+            className={`flex-1 text-sm font-medium py-2.5 px-4 rounded-lg transition-all ${
+              activeSubTab === 'searches'
+                ? 'bg-white text-[#1A1A2E] shadow-sm'
+                : 'text-[#4A5568] hover:text-[#1A1A2E]'
+            }`}
+          >
+            Meine Jobsuchen
+          </button>
+          <button
+            onClick={() => setActiveSubTab('saved')}
+            className={`flex-1 text-sm font-medium py-2.5 px-4 rounded-lg transition-all ${
+              activeSubTab === 'saved'
+                ? 'bg-white text-[#1A1A2E] shadow-sm'
+                : 'text-[#4A5568] hover:text-[#1A1A2E]'
+            }`}
+          >
+            Gespeicherte Jobs
+          </button>
+        </div>
+      </div>
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        {activeSubTab === 'saved' ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-[#F5EFE3] rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-[#D1C9BD]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-semibold text-[#1A1A2E] mb-1">Noch keine gespeicherten Jobs</h2>
+            <p className="text-sm text-[#4A5568] max-w-xs mx-auto">
+              Speichere interessante Stellen aus deinen Suchergebnissen, um sie später wiederzufinden.
+            </p>
+          </div>
+        ) : (
+        <>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Chats</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Meine Jobsuchen</h1>
           <button
             onClick={handleNewChat}
             disabled={isCreating || !canCreateNew}
@@ -158,7 +201,7 @@ function ChatListView() {
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            {isCreating ? 'Wird erstellt...' : !canCreateNew ? `In ${getCooldownDays()} Tagen` : 'Neuer Chat'}
+            {isCreating ? 'Wird erstellt...' : !canCreateNew ? `In ${getCooldownDays()} Tagen` : 'Neue Jobsuche'}
           </button>
         </div>
 
@@ -169,7 +212,7 @@ function ChatListView() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Chats durchsuchen ..."
+            placeholder="Jobsuchen durchsuchen ..."
             enterKeyHint="search"
             autoComplete="off"
             className="w-full pl-10 pr-4 py-3 min-h-[44px] bg-white border border-[#E8E0D4]/80 rounded-xl text-[16px] sm:text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#F5B731]/30 focus:border-[#F5B731]/20 transition-all"
@@ -209,7 +252,7 @@ function ChatListView() {
         {/* Conversation Count */}
         {!isLoading && (
           <p className="text-sm text-[#9CA3AF] mb-4">
-            {filteredConversations.length} Chat{filteredConversations.length !== 1 ? 's' : ''}
+            {filteredConversations.length} Jobsuche{filteredConversations.length !== 1 ? 'n' : ''}
           </p>
         )}
 
@@ -230,9 +273,9 @@ function ChatListView() {
             <div className="w-16 h-16 bg-[#F5B731]/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg className="w-8 h-8 text-[#F5B731]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             </div>
-            <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Noch keine Chats</h2>
+            <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Noch keine Jobsuchen</h2>
             <p className="text-sm text-[#6B7280] mb-6 max-w-xs mx-auto">
-              Starte deinen ersten Chat mit dem pexible Job-Makler und finde passende Stellen.
+              Starte deine erste Jobsuche mit dem pexible Job-Makler und finde passende Stellen.
             </p>
             <button
               onClick={handleNewChat}
@@ -244,7 +287,7 @@ function ChatListView() {
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              Ersten Chat starten
+              Erste Jobsuche starten
             </button>
           </div>
         )}
@@ -255,7 +298,7 @@ function ChatListView() {
             {filteredConversations.map((conv) => (
               <Link
                 key={conv.id}
-                href={`/chat/${conv.id}`}
+                href={`/jobs/${conv.id}`}
                 className="flex items-center gap-4 px-4 py-4 min-h-[60px] rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-[#E8E0D4]/60 transition-all group active:scale-[0.99]"
               >
                 {/* Icon */}
@@ -296,8 +339,10 @@ function ChatListView() {
         {/* No search results */}
         {!isLoading && search.trim() && filteredConversations.length === 0 && conversations.length > 0 && (
           <div className="text-center py-12">
-            <p className="text-sm text-[#9CA3AF]">Keine Chats gefunden f&uuml;r &ldquo;{search}&rdquo;</p>
+            <p className="text-sm text-[#9CA3AF]">Keine Jobsuchen gefunden f&uuml;r &ldquo;{search}&rdquo;</p>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
@@ -545,10 +590,10 @@ function AnonymousChatView() {
           }
 
           // Redirect to conversation page with registered flag
-          window.location.href = `/chat/${convId}?registered=1`
+          window.location.href = `/jobs/${convId}?registered=1`
         } else {
           console.error('No conversation ID returned:', convData)
-          window.location.href = '/chat'
+          window.location.href = '/jobs'
         }
       } catch (err) {
         console.error('Registration flow error:', err)
@@ -570,7 +615,7 @@ function AnonymousChatView() {
               Anmelden
             </Link>
             <Link href="/login" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors">
-              Konto erstellen
+              Los geht's
             </Link>
           </div>
         </div>
@@ -653,7 +698,7 @@ function AnonymousChatView() {
                           className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm shadow-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                          Kostenlos registrieren
+                          Los geht's
                         </button>
                         <button
                           onClick={() => { window.location.href = '/' }}

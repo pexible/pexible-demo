@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUser } from '@/lib/hooks/useUser'
-import { serviceNavItems, guestNavItems, userMenuItems, type NavItem } from '@/lib/navigation'
+import { serviceNavItems, guestNavItems, userMenuItems, userMenuSecondaryItems, type NavItem } from '@/lib/navigation'
 
 // ─── Types ───
 
@@ -96,7 +96,7 @@ function NavIcon({ path, className = 'w-5 h-5' }: { path: string; className?: st
 
 // ─── Main Navbar component ───
 
-export default function Navbar({ variant = 'default', backHref = '/chat', backLabel = 'Zurück' }: NavbarProps) {
+export default function Navbar({ variant = 'default', backHref = '/jobs', backLabel = 'Zurück' }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
   const pathname = usePathname()
@@ -105,6 +105,7 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  const logoHref = user ? '/mein-pex' : '/'
   const isHome = pathname === '/'
   const userName = user?.firstName || ''
 
@@ -217,7 +218,7 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
             </svg>
             <span className="hidden sm:inline">{backLabel}</span>
           </Link>
-          <Link href="/" className="text-xl font-bold italic tracking-tight text-[#1A1A2E] ml-auto">
+          <Link href={logoHref} className="text-xl font-bold italic tracking-tight text-[#1A1A2E] ml-auto">
             pexible
           </Link>
         </div>
@@ -246,7 +247,7 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
           <div className="flex items-center justify-between h-16">
             {/* ── Logo ── */}
             <Link
-              href="/"
+              href={logoHref}
               className="text-2xl font-bold italic tracking-tight text-[#1A1A2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2 rounded-lg"
             >
               pexible
@@ -269,6 +270,16 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
 
             {/* ── Desktop: right side ── */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Search icon */}
+              <Link
+                href="/suche"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#4A5568] hover:text-[#1A1A2E] rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
+                aria-label="Suche"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </Link>
               {isLoading ? (
                 <div className="flex items-center gap-3">
                   <span className="text-sm px-4 py-2 invisible">Anmelden</span>
@@ -323,6 +334,20 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
                         ))}
                       </div>
 
+                      {/* Settings & help */}
+                      <div className="border-t border-[#E8E0D4]/60 py-1">
+                        {userMenuSecondaryItems.map((item) => (
+                          <Link
+                            key={item.href + item.label}
+                            href={item.href}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#4A5568] hover:text-[#1A1A2E] hover:bg-[#F9F5EE] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#F5B731]"
+                          >
+                            <NavIcon path={item.iconPath} className="w-4 h-4" />
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+
                       {/* Sign out */}
                       <div className="border-t border-[#E8E0D4]/60 py-1">
                         <button
@@ -346,10 +371,10 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
                     Anmelden
                   </Link>
                   <Link
-                    href="/chat"
+                    href="/jobs"
                     className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
                   >
-                    Jetzt starten
+                    Los geht's
                   </Link>
                 </div>
               )}
@@ -402,7 +427,7 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 h-16 border-b border-[#E8E0D4]/60">
-            <Link href="/" onClick={closeMobile} className="text-xl font-bold italic tracking-tight text-[#1A1A2E]">
+            <Link href={logoHref} onClick={closeMobile} className="text-xl font-bold italic tracking-tight text-[#1A1A2E]">
               pexible
             </Link>
             <button
@@ -431,6 +456,17 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
                   </li>
                 )
               })}
+              <li>
+                <Link
+                  href="/suche"
+                  onClick={closeMobile}
+                  className={mobileLinkClass(isActive('/suche'))}
+                  {...(isActive('/suche') ? { 'aria-current': 'page' as const } : {})}
+                >
+                  <NavIcon path="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  Suche
+                </Link>
+              </li>
             </ul>
 
             {/* ── Section 2: Guest anchors (not logged in, on landing page) ── */}
@@ -486,6 +522,26 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
                   })}
                 </ul>
 
+                <div className="my-3 border-t border-[#E8E0D4]/60" />
+                <ul className="space-y-1" role="list">
+                  {userMenuSecondaryItems.map((item) => {
+                    const active = isActive(item.href)
+                    return (
+                      <li key={item.href + item.label}>
+                        <Link
+                          href={item.href}
+                          onClick={closeMobile}
+                          className={mobileLinkClass(active)}
+                          {...(active ? { 'aria-current': 'page' as const } : {})}
+                        >
+                          <NavIcon path={item.iconPath} />
+                          {item.label}
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+
                 <button
                   onClick={() => { signOut(); closeMobile() }}
                   className="w-full flex items-center gap-3 px-3 py-3 mt-1 min-h-[48px] text-sm text-[#9CA3AF] hover:text-red-600 rounded-xl transition-colors active:bg-red-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
@@ -507,11 +563,11 @@ export default function Navbar({ variant = 'default', backHref = '/chat', backLa
                   Anmelden
                 </Link>
                 <Link
-                  href="/chat"
+                  href="/jobs"
                   onClick={closeMobile}
                   className="block text-center text-sm font-semibold bg-[#1A1A2E] text-white px-4 py-3 min-h-[48px] rounded-full active:bg-[#2D2D44] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2"
                 >
-                  Jetzt starten
+                  Los geht's
                 </Link>
               </div>
             )}

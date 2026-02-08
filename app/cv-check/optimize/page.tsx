@@ -476,7 +476,7 @@ function OptimizationResults({ data, originalScore }: { data: OptimizationResult
       {/* Cross-selling */}
       <div className="text-center">
         <Link
-          href="/chat"
+          href="/jobs"
           className="text-sm font-medium text-[#F5B731] hover:text-[#E8930C] transition-colors"
         >
           Jetzt passende Jobs finden →
