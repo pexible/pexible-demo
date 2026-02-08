@@ -1,5 +1,14 @@
 import { nanoid } from 'nanoid'
-import type { Result } from './storage'
+
+interface Result {
+  id: string
+  search_id: string
+  company_name: string
+  job_title: string
+  job_url: string
+  description: string
+  rank: number
+}
 
 export const DEMO_COMPANIES = [
   { name: 'Siemens AG', domain: 'siemens.com' },

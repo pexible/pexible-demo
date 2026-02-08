@@ -13,11 +13,13 @@
 
 - **Name:** pexible-demo
 - **Typ:** Next.js 15 App Router (TypeScript, React 19)
-- **Zweck:** KI-gesteuerter Job-Makler-Demo mit konversationalem Sales-Funnel
+- **Zweck:** KI-gesteuerter Job-Makler mit konversationalem Sales-Funnel + CV-Check Feature
 - **Sprache der UI:** Deutsch (alle sichtbaren Texte, Fehlermeldungen, System-Prompt)
 - **Sprache des Codes:** Englisch (Variablen, Typen, Kommentare, Dateinamen)
 
-**User-Flow:** Landing Page -> Login (Passwort-Gate) -> Chat mit AI-Agent -> Registrierung (Modal) -> 3 Freemium-Ergebnisse -> Bezahlung 49 EUR (Stripe) -> Alle Ergebnisse
+**User-Flow (Jobsuche):** Landing Page -> Chat (anonym) -> AI sammelt Job + PLZ -> Registrierung (OTP via Supabase) -> 3 Freemium-Ergebnisse -> Bezahlung 49 EUR (Stripe) -> Alle Ergebnisse
+
+**User-Flow (CV-Check):** Landing Page -> CV-Check Seite -> PDF hochladen -> KI-Analyse (2 Stufen) -> Ergebnis anzeigen -> Optional: KI-Optimierung (kostenpflichtig)
 
 ---
 
@@ -32,20 +34,21 @@
 ### R2: Architektur-Regeln
 - Alle Seiten liegen als `page.tsx` in `app/` (Next.js App Router Pattern)
 - Alle API-Endpunkte liegen als `route.ts` in `app/api/<name>/`
-- Alle API-Routen exportieren async-Funktionen (`POST`, `GET`)
-- Shared-Logik liegt in `lib/` (storage, auth)
+- Alle API-Routen exportieren async-Funktionen (`POST`, `GET`, `PUT`)
+- Shared-Logik liegt in `lib/` (supabase, hooks, navigation, rate-limit, demo-data, cv-*)
 - Client-Components muessen `'use client'` als erste Zeile haben
 - Server-Components (default) benoetigen kein Directive
 - Es gibt **keine** `pages/` directory -- nur `app/` wird verwendet
+- Shared UI-Komponenten liegen in `components/` (Navbar, Footer, etc.)
 
 ### R3: Daten-Regeln
-- **Kein Datenbank-Server.** Alles laeuft ueber JSON-Dateien (`lib/storage.ts`)
-- Lokal: `data/*.json` im Projektverzeichnis
-- Vercel/Serverless: `/tmp/pexible-data/*.json` (ephemeral!)
-- Jede Entitaet hat eine eigene JSON-Datei: `users.json`, `searches.json`, `results.json`
+- **Supabase** (PostgreSQL) fuer alle persistenten Daten
+- Server-Side: `createClient()` aus `@/lib/supabase/server` (cookie-basiert)
+- Client-Side: `createClient()` aus `@/lib/supabase/client` (browser)
+- Admin-Operationen: `createAdminClient()` aus `@/lib/supabase/admin` (service role, umgeht RLS)
 - IDs werden mit `nanoid()` generiert (Import: `import { nanoid } from 'nanoid'`)
 - Timestamps: ISO 8601 Strings (`new Date().toISOString()`)
-- Passwoerter: bcrypt mit 10 Runden (`bcrypt.hash(pw, 10)`)
+- Tabellen: `profiles`, `searches`, `results`, `conversations`, `cv_checks`, `cv_check_results`
 
 ### R4: Styling-Regeln
 - **Tailwind CSS** -- keine separaten CSS-Module oder styled-components
@@ -53,26 +56,29 @@
   - Hintergruende: `cream-50` bis `cream-400` (Basis: `#FDF8F0`)
   - Akzente/CTAs: `brand` (#F5B731), `brand-dark` (#E5A820)
   - Text/Dunkel: `navy` (#1A1A2E), `navy-light` (#2D2D44), `navy-muted` (#4A4A5C)
-- In `chat/page.tsx`: Farben werden als Hex-Literale verwendet (Legacy, konsistent halten)
 - Font: Inter (Google Fonts, geladen in `app/layout.tsx`)
 - Alle Seiten haben das warme Cream-Theme (`bg-[#FDF8F0]`)
-- Modals: Dunkles Theme (`bg-[#1a1a24]`, weisser Text)
+- Modals (Payment): Dunkles Theme (`bg-[#1a1a24]`, weisser Text)
+- Modals (Registration): Helles Theme (`bg-white`)
 
 ### R5: Auth-Regeln
-- NextAuth mit Credentials Provider (nur Passwort, kein Username)
-- Ein einziges Demo-Passwort via `DEMO_PASSWORD` Env-Variable
-- JWT-Session-Strategie
-- Login-Redirect: `/login`
-- Geschuetzte Routen (Middleware): `/chat/*`, `/upload/*`, `/api/chat/*`, `/api/upload/*`
-- **Nicht** geschuetzt: `/api/register`, `/api/create-payment-intent`, `/api/payment-confirm`, `/api/tts`
+- **Supabase Auth** mit OTP (Email-Code, kein Passwort)
+- Login-Flow: Email eingeben -> 6-stelliger OTP-Code per Email -> Verifizieren -> Optional Vorname setzen
+- Session-Management via Supabase Cookies (SSR-kompatibel)
+- Middleware (`middleware.ts`) refresht Sessions und schuetzt Routen
+- Client-Side Auth: `useUser()` Hook aus `@/lib/hooks/useUser`
+- **Geschuetzte Routen (Middleware):** `/chat/*` (nicht `/chat`), `/mein-pex/*`, `/upload/*`, `/api/upload/*`, `/api/conversations/*`, `/cv-check/result/*`, `/cv-check/optimize/*`, `/api/cv-check/results/*`, `/api/cv-check/download/*`, `/api/cv-check/optimize/*`, `/api/cv-check/create-checkout/*`
+- **Nicht geschuetzt:** `/chat` (anonym nutzbar), `/api/chat`, `/api/register`, `/api/tts`, `/api/cv-check/analyze`
+- Unauthentifizierte User werden zu `/login?redirect=...` weitergeleitet
 
 ### R6: AI-Chat-Regeln
 - Modell: GPT-4o via `@ai-sdk/openai` (NICHT direkt `openai` SDK fuer Chat)
 - Streaming: `streamText()` + `toDataStreamResponse()` aus `ai`-Paket
 - Frontend: `useChat()` Hook aus `ai/react`
 - maxDuration: 30s, maxSteps: 5
-- System-Prompt ist ein langer deutscher String in `app/api/chat/route.ts:115-197`
+- Zwei System-Prompts: einer fuer authentifizierte, einer fuer anonyme User
 - Tool-Parameter werden mit `zod`-Schemas definiert
+- Rate-Limit: 20 Chat-Requests pro Minute pro IP
 
 ### R7: Payment-Regeln
 - Stripe im Test-Modus (`sk_test_...`, `pk_test_...`)
@@ -80,6 +86,8 @@
 - Waehrung: `eur`
 - Frontend: Stripe Elements mit `@stripe/react-stripe-js`
 - Stripe-Appearance: Night-Theme mit `#F5B731` als Primary-Farbe
+- PaymentIntent enthaelt `metadata: { search_id, user_id }` fuer IDOR-Schutz
+- Payment-Confirm validiert, dass `metadata.search_id` mit der Anfrage uebereinstimmt
 
 ---
 
@@ -87,204 +95,237 @@
 
 ```
 app/
-  layout.tsx              [30 Z]  Root-Layout: Inter-Font, <html lang="de">, SessionProvider
-  globals.css             [92 Z]  CSS-Variablen, Scrollbar-Styling, Animationen
-  page.tsx               [~630 Z] Landing Page: Hero, Features, Testimonials, FAQ, Blog-Preview
-  login/page.tsx          [94 Z]  Passwort-Gate: ein Input, signIn('credentials'), redirect /chat
-  chat/page.tsx          [815 Z]  HAUPT-DATEI: Chat-UI, Modals, Audio, PDF -- Details in Abschnitt 5
-  blog/page.tsx          [~300 Z] Statische Blog-Artikel (6 Artikel, Grid-Layout)
-  upload/page.tsx        [111 Z]  Admin-Upload: search_id + JSON-File -> /api/upload
+  layout.tsx                [135 Z]  Root-Layout: Inter-Font, <html lang="de">, JSON-LD SEO
+  globals.css               [163 Z]  CSS-Variablen, Scrollbar, safe-area, Animationen, reduced-motion
+  page.tsx                  [540 Z]  Landing Page: Hero, Features, How-it-works, Testimonials, FAQ
+  login/page.tsx            [461 Z]  OTP-Login: Email -> Code -> Optional Name
+  chat/page.tsx             [898 Z]  Dual-Mode: ChatListView (auth) + AnonymousChatView (anon)
+  chat/[id]/page.tsx        [966 Z]  Chat-Detail: ActiveChatView + CompletedChatView + Payment
+  register/page.tsx          [24 Z]  Redirect-Stub
+  blog/page.tsx             [272 Z]  Statische Blog-Artikel (Grid-Layout)
+  upload/page.tsx           [111 Z]  Admin-Upload: search_id + JSON-File -> /api/upload
+  mein-pex/page.tsx         [480 Z]  Dashboard: Suchen, CV-Checks, Quick-Actions
+  cv-check/page.tsx         [574 Z]  CV-Check Landing + PDF-Upload + Analyse-Trigger
+  cv-check/optimize/page.tsx [518 Z] KI-Optimierung des Lebenslaufs
+  cv-check/result/[id]/page.tsx [195 Z] Einzelnes CV-Check-Ergebnis anzeigen
+  datenschutz/page.tsx             Datenschutzerklaerung
+  impressum/page.tsx               Impressum + Widerrufsbelehrung
 
   api/
-    auth/[...nextauth]/route.ts  [6 Z]   NextAuth Handler (delegiert an lib/auth.ts)
-    chat/route.ts               [201 Z]  AI-Streaming + 3 Tools + System-Prompt
-    register/route.ts           [137 Z]  User + Search + Demo-Results erstellen
-    create-payment-intent/route.ts [40 Z] Stripe PaymentIntent (4900 Cent)
-    payment-confirm/route.ts     [51 Z]  Zahlung bestaetigen, search.paid = true
-    tts/route.ts                 [44 Z]  OpenAI TTS (tts-1, nova, MP3)
-    upload/route.ts              [64 Z]  Admin JSON-Upload fuer echte Ergebnisse
+    chat/route.ts               [336 Z]  AI-Streaming + 3 Tools + System-Prompt
+    register/route.ts           [113 Z]  Profil-Update + Search + Demo-Results erstellen
+    create-payment-intent/route.ts [84 Z] Stripe PaymentIntent (4900 Cent, auth required)
+    payment-confirm/route.ts     [64 Z]  Zahlung bestaetigen, search.paid = true
+    tts/route.ts                 [75 Z]  OpenAI TTS (tts-1, nova, MP3, auth required)
+    upload/route.ts             [127 Z]  Admin JSON-Upload fuer echte Ergebnisse
+    conversations/route.ts      [151 Z]  GET: Liste, POST: Neue Konversation erstellen
+    conversations/[id]/route.ts  [80 Z]  GET/PUT: Konversation lesen/aktualisieren
+    conversations/[id]/messages/route.ts [57 Z]  POST: Nachrichten speichern
+    cv-check/analyze/route.ts   [258 Z]  PDF-Upload + 2-stufige KI-Analyse
+    cv-check/optimize/route.ts  [206 Z]  KI-Optimierung des Lebenslaufs
+    cv-check/create-checkout/route.ts [80 Z] Stripe fuer CV-Optimierung
+    cv-check/results/route.ts    [36 Z]  Liste aller CV-Checks eines Users
+    cv-check/results/[id]/route.ts [41 Z] Einzelnes CV-Check-Ergebnis
+    cv-check/download/[id]/[format]/route.ts [264 Z] PDF/DOCX-Export der Optimierung
 
 components/
-  SessionProvider.tsx     [7 Z]   Client-Wrapper fuer NextAuth SessionProvider
+  Navbar.tsx              [523 Z]  Shared Navigation: 3 Varianten, scroll-hide, avatar dropdown, mobile panel
+  Footer.tsx                       Shared Footer: dynamisch aus lib/navigation.ts
+  FaqAccordion.tsx                 FAQ-Accordion mit Animation
 
 lib/
-  auth.ts                [34 Z]   NextAuth Config: CredentialsProvider, JWT, Callbacks
-  storage.ts             [99 Z]   JSON-Storage: Typen (User, Search, Result) + CRUD-Funktionen
+  supabase/client.ts       [9 Z]   Browser-Client (createBrowserClient)
+  supabase/server.ts      [28 Z]   Server-Client (cookie-basiert, SSR)
+  supabase/admin.ts       [21 Z]   Admin-Client (service role, umgeht RLS)
+  hooks/useUser.ts        [61 Z]   React Hook: user, isLoading, signOut
+  navigation.ts          [112 Z]   Zentrale Nav-Config: serviceNavItems, guestNavItems, userMenuItems, footerGroups
+  rate-limit.ts           [63 Z]   In-Memory Rate-Limiter + IP-Extraktion
+  demo-data.ts            [37 Z]   DEMO_COMPANIES Array + generateDemoResults()
+  cv-anonymize.ts                  CV-Text-Anonymisierung
+  cv-prompts.ts                    AI-Prompts fuer CV-Analyse/Optimierung
+  cv-token-store.ts                Token-Management fuer CV-Check (Supabase-backed)
 ```
 
 ---
 
-## 4. Datenmodelle (lib/storage.ts:48-75)
+## 4. Datenmodelle (Supabase-Tabellen)
 
-```typescript
-// lib/storage.ts:48-54
-type User = {
-  id: string              // nanoid()
-  email: string           // muss @ enthalten
-  password_hash: string   // bcrypt, 10 Runden
-  first_name: string      // min 2 Zeichen (AI-Tool-Validierung)
-  created_at: string      // ISO 8601
-}
-
-// lib/storage.ts:56-65
-type Search = {
-  id: string              // nanoid()
-  user_id: string         // FK -> User.id
-  job_title: string       // z.B. "Content Manager"
-  postal_code: string     // genau 5 Ziffern, Regex: /^\d{5}$/
-  status: 'pending' | 'completed'
-  paid: boolean           // false = 3 Ergebnisse sichtbar, true = alle
-  total_results: number   // Gesamtzahl der Ergebnisse
-  created_at: string      // ISO 8601
-}
-
-// lib/storage.ts:67-75
-type Result = {
-  id: string              // nanoid()
-  search_id: string       // FK -> Search.id
-  company_name: string    // z.B. "Siemens AG"
-  job_title: string       // z.B. "Controller (m/w/d)"
-  job_url: string         // https://careers.domain.com/jobs/...
-  description: string     // Kurzbeschreibung der Stelle
-  rank: number            // 1 = bester Treffer, aufsteigend
-}
+### profiles (Supabase-managed, verknuepft mit auth.users)
+```
+id: uuid (PK, FK -> auth.users.id)
+first_name: text
 ```
 
-### Storage-Funktionen (lib/storage.ts:77-99)
-| Funktion | Signatur | Datei |
-|---|---|---|
-| `getUsers()` | `() => Promise<{ users: User[] }>` | `users.json` |
-| `saveUsers(data)` | `(data: { users: User[] }) => Promise<void>` | `users.json` |
-| `getSearches()` | `() => Promise<{ searches: Search[] }>` | `searches.json` |
-| `saveSearches(data)` | `(data: { searches: Search[] }) => Promise<void>` | `searches.json` |
-| `getResults()` | `() => Promise<{ results: Result[] }>` | `results.json` |
-| `saveResults(data)` | `(data: { results: Result[] }) => Promise<void>` | `results.json` |
-| `readJSON(file, default)` | `<T>(filename: string, defaultValue: T) => Promise<T>` | beliebig |
-| `writeJSON(file, data)` | `<T>(filename: string, data: T) => Promise<void>` | beliebig |
+### searches
+```
+id: text (PK, nanoid)
+user_id: uuid (FK -> profiles.id)
+job_title: text
+postal_code: text (5 Ziffern)
+status: text ('pending' | 'completed')
+paid: boolean
+total_results: integer
+created_at: timestamptz
+```
 
-### Regel: Neues Datenmodell hinzufuegen
-1. Typ in `lib/storage.ts` definieren (nach Zeile 75)
-2. Getter-Funktion: `export async function getXxx(): Promise<{ xxx: Xxx[] }> { return readJSON('xxx.json', { xxx: [] }) }`
-3. Setter-Funktion: `export async function saveXxx(data: { xxx: Xxx[] }): Promise<void> { return writeJSON('xxx.json', data) }`
-4. Default-Value ist immer `{ entityName: [] }` (Objekt mit Array)
+### results
+```
+id: text (PK, nanoid)
+search_id: text (FK -> searches.id)
+company_name: text
+job_title: text
+job_url: text
+description: text
+rank: integer
+```
+
+### conversations
+```
+id: text (PK, nanoid)
+user_id: uuid (FK -> profiles.id)
+title: text
+status: text ('active' | 'completed')
+search_id: text (FK -> searches.id, nullable)
+messages: jsonb (Array von Message-Objekten)
+created_at: timestamptz
+updated_at: timestamptz
+```
 
 ---
 
-## 5. Chat-Seite im Detail (app/chat/page.tsx)
+## 5. Chat-System im Detail
 
-Dies ist die groesste und komplexeste Datei. Struktur:
+Das Chat-System besteht aus zwei Seiten:
 
-### 5.1 Interne Komponenten (in derselben Datei)
-| Komponente | Zeilen | Zweck |
-|---|---|---|
-| `getVisibleContent()` | 31-35 | Filtert `<!--RESULTS_DATA...-->` und `<!--PAYMENT_SUCCESS...-->` aus Nachrichten |
-| `generateResultsPdf()` | 37-127 | Erstellt PDF mit jsPDF (A4, Tabelle, pexible-Branding) |
-| `RegistrationModal` | 131-204 | Modal: Passwort setzen -> POST /api/register -> onSuccess |
-| `CheckoutForm` | 208-237 | Stripe PaymentElement + Confirm -> POST /api/payment-confirm |
-| `PaymentModal` | 239-295 | Modal: Laedt Stripe clientSecret -> zeigt CheckoutForm |
-| `ChatPage` (default) | 299-815 | Haupt-Seite: Chat, Audio, State, Modals |
+### 5.1 Chat-Liste / Anonym-Chat (`app/chat/page.tsx`, 898 Zeilen)
 
-### 5.2 State-Management (ChatPage, Zeile 300-334)
-| State | Typ | Zweck |
-|---|---|---|
-| `messages, input, handleInputChange, handleSubmit, isLoading, append` | useChat() | Vercel AI SDK Chat-State |
-| `showModal` | boolean | Registrierungs-Modal offen? |
-| `registrationData` | RegistrationData \| null | Daten vom `request_registration`-Tool |
-| `showPaymentModal` | boolean | Payment-Modal offen? |
-| `paymentSearchId` | string \| null | search_id fuer Zahlung |
-| `paymentHandled` | Set\<string\> | Verhindert doppeltes Oeffnen des Payment-Modals |
-| `loggedInUser` | string \| null | Vorname nach Registrierung (Anzeige im Navbar) |
-| `freemiumResults` | PdfResult[] | Erste 3 Ergebnisse (fuer PDF-Download) |
-| `allResults` | PdfResult[] | Alle Ergebnisse (fuer PDF nach Zahlung) |
-| `resultJobTitle` | string | Jobtitel fuer PDF-Header |
-| `hasPaid` | boolean | Zahlungsstatus (steuert PDF-Inhalt) |
-| `audioMode` | boolean | Sprachmodus aktiv? |
-| `isListening` | boolean | Mikrofon aktiv? |
-| `isSpeaking` | boolean | TTS-Wiedergabe laeuft? |
+**Dual-Mode basierend auf Auth-Status:**
+- **Authentifiziert:** `ChatListView` -- zeigt alle Konversationen, "Neuer Chat" Button, Suchfeld, 7-Tage-Cooldown zwischen Suchen
+- **Anonym:** `AnonymousChatView` -- direkter Chat mit KI, nach Job+PLZ wird Registrierung getriggert
 
-### 5.3 Kritischer Datenfluss: Frontend <-> Backend <-> AI
+**Anonymer Chat -> Registrierung Flow:**
+1. User chattet anonym mit KI (kein Auth noetig)
+2. KI ruft `create_search(job_title, postal_code)` auf
+3. Tool erkennt fehlende Auth und gibt `{ action: 'require_registration' }` zurueck
+4. Frontend zeigt "Kostenlos registrieren" + "Beenden" Buttons
+5. User klickt registrieren -> OTP-Modal oeffnet sich (Name + Email -> Code -> Verify)
+6. Nach erfolgreicher Registrierung: Conversation wird erstellt, Nachrichten gespeichert, Redirect zu `/chat/[id]?registered=1`
+7. Chat-Detail-Seite erkennt `?registered=1` und sendet automatisch Nachricht an KI
 
-**Registrierung:**
-1. AI ruft Tool `request_registration(email, first_name, job_title, postal_code)` auf
-2. Tool gibt `{ action: 'show_registration_modal', data: {...} }` zurueck
-3. `useEffect` (Zeile 349-359) erkennt `action === 'show_registration_modal'` -> oeffnet Modal
-4. User gibt Passwort ein -> Modal ruft `POST /api/register`
-5. Register-API erstellt User + Search + 7-10 Demo-Results, gibt alles zurueck
-6. `handleRegistrationSuccess` (Zeile 528-543): Speichert Results in State, sendet sie als versteckte Nachricht an AI:
-   ```
-   <!--RESULTS_DATA\nSearch-ID: ...\nSUCHERGEBNISSE (X Treffer):\n...-->
-   ```
-7. AI sieht die Ergebnisse in der Nachricht und zeigt 3 kostenlose an
+### 5.2 Chat-Detail (`app/chat/[id]/page.tsx`, 966 Zeilen)
+
+**Zwei Unter-Views:**
+- `ActiveChatView`: Aktiver Chat mit KI, Payment-Modal, Audio-Modus, PDF-Download
+- `CompletedChatView`: Read-Only-Ansicht abgeschlossener Chats
+
+**Kritischer Datenfluss:**
+
+**Suche starten (auth User):**
+1. KI ruft `create_search(job_title, postal_code)` auf
+2. Tool erstellt Search + 7-10 Demo-Results in Supabase
+3. Tool gibt `{ search_id, freemium_results, locked_results }` zurueck
+4. Frontend speichert Results in State, zeigt 3 kostenlose
+5. Chat-Input wird durch "Alle Ergebnisse freischalten" Button ersetzt
 
 **Zahlung:**
-1. AI ruft Tool `create_payment(search_id)` auf
-2. Tool gibt `{ action: 'show_payment_modal', search_id }` zurueck
-3. `useEffect` (Zeile 361-373) erkennt `action === 'show_payment_modal'` -> oeffnet Modal
-4. Modal ruft `POST /api/create-payment-intent` -> bekommt `clientSecret`
-5. User bezahlt via Stripe Elements -> `stripe.confirmPayment()`
-6. Checkout ruft `POST /api/payment-confirm` -> setzt `search.paid = true`
-7. `handlePaymentSuccess` (Zeile 545-554): Sendet Bestaetigung an AI:
-   ```
-   <!--PAYMENT_SUCCESS search_id=...-->
-   ```
-8. AI zeigt alle Ergebnisse aus der urspruenglichen Nachricht
+1. KI ruft `create_payment(search_id)` auf -> oeffnet PaymentModal
+2. PaymentModal ruft `POST /api/create-payment-intent` -> bekommt `clientSecret`
+3. User bezahlt via Stripe Elements -> `stripe.confirmPayment()`
+4. Frontend ruft `POST /api/payment-confirm` -> setzt `search.paid = true`
+5. Bestaetigung wird als versteckte Nachricht an KI gesendet: `<!--PAYMENT_SUCCESS search_id=...-->`
+6. KI zeigt alle Ergebnisse
+7. Konversation wird als `completed` markiert
 
-**Wichtig:** Die Kommentare `<!--RESULTS_DATA...-->` und `<!--PAYMENT_SUCCESS...-->` werden im Frontend durch `getVisibleContent()` herausgefiltert und dem User nicht angezeigt. Sie dienen nur der Kommunikation Frontend -> AI.
+**Versteckte Nachrichten:** `<!--RESULTS_DATA...-->` und `<!--PAYMENT_SUCCESS...-->` werden durch `getVisibleContent()` im Frontend herausgefiltert.
 
-### 5.4 Audio-Modus (Zeile 326-527)
+### 5.3 Audio-Modus
 - **Spracheingabe:** Web Speech API (`SpeechRecognition`), Sprache: `de-DE`
 - **Sprachausgabe:** Primaer OpenAI TTS (`/api/tts`), Fallback: Browser `speechSynthesis`
 - **Flow:** Bot spricht -> Audio endet -> Mikrofon startet automatisch -> User spricht -> Nachricht gesendet -> Bot antwortet -> Zyklus wiederholt
-- **Auto-Exit:** Wenn Bot nach Email fragt (Zeile 484-489), wird Audio-Modus beendet (Email muss getippt werden)
-- **Text-Versteckung:** Waehrend TTS geladen wird, zeigt Chat nur Lade-Animation statt Text (Zeile 481, `pendingAudioMsgId`)
+- **Auto-Exit:** Wenn Bot nach Email fragt, wird Audio-Modus beendet
+- **Text-Versteckung:** Waehrend TTS geladen wird, zeigt Chat nur Lade-Animation statt Text
+
+### 5.4 Nachrichten-Persistenz
+- Nachrichten werden nach jeder KI-Antwort via `POST /api/conversations/[id]/messages` gespeichert
+- Beim Laden einer Konversation werden gespeicherte Nachrichten wiederhergestellt
+- Stripe-Redirect-Handling (Klarna etc.) nach Rueckkehr auf die Seite
 
 ---
 
-## 6. API-Referenz (exakte Schemas)
+## 6. API-Referenz
 
-### POST /api/chat (app/api/chat/route.ts)
-- **Auth:** Ja (Middleware)
-- **Request:** `{ messages: Message[] }` (Vercel AI SDK Message-Format)
+### POST /api/chat
+- **Auth:** Nein (funktioniert auch anonym, aber Verhalten aendert sich)
+- **Rate-Limit:** 20/min pro IP
+- **Request:** `{ messages: Message[], conversationId?: string }`
 - **Response:** Data-Stream (SSE) via `toDataStreamResponse()`
+- **Limits:** Max 100 Nachrichten, max 5000 Zeichen pro Nachricht
 - **AI-Tools:**
 
-| Tool | Parameter | Rueckgabe | Frontend-Reaktion |
+| Tool | Parameter | Rueckgabe (auth) | Rueckgabe (anon) |
 |---|---|---|---|
-| `request_registration` | `{ email: string, first_name: string, job_title: string, postal_code: string }` | `{ action: 'show_registration_modal', data: {...} }` | Oeffnet RegistrationModal |
-| `check_results` | `{ search_id: string }` | `{ found, paid, total_results, freemium_results?, all_results?, locked_count? }` | AI formatiert Ergebnisse |
-| `create_payment` | `{ search_id: string }` | `{ action: 'show_payment_modal', search_id }` | Oeffnet PaymentModal |
+| `create_search` | `{ job_title, postal_code }` | `{ search_id, freemium_results, locked_results }` | `{ action: 'require_registration' }` |
+| `check_results` | `{ search_id }` | `{ found, paid, results... }` | `{ found: false }` |
+| `create_payment` | `{ search_id }` | `{ action: 'show_payment_modal', search_id }` | -- |
 
-### POST /api/register (app/api/register/route.ts)
-- **Auth:** Nein
-- **Request:** `{ email: string, password: string, first_name: string, job_title: string, postal_code: string }`
-- **Validierung:** email mit @, password >= 8 Zeichen, postal_code genau 5 Ziffern, alle Felder pflicht
-- **Erfolg (200):** `{ success: true, user_id, search_id, first_name, total_results, results: [{company_name, job_title, job_url, description}], message }`
-- **Fehler (400):** `{ success: false, error: "..." }`
-- **Seiteneffekte:** Erstellt User, Search, 7-10 Demo-Results in Storage
+### POST /api/register
+- **Auth:** Ja (Supabase Session muss existieren, User ist bereits via OTP eingeloggt)
+- **Rate-Limit:** 5/min pro IP
+- **Request:** `{ first_name, email, job_title?, postal_code? }`
+- **Validierung:** first_name min 2 / max 100 Zeichen, job_title max 200 Zeichen
+- **Erfolg (200):** `{ success: true, user_id, first_name, search?: { search_id, total_results } }`
+- **Seiteneffekte:** Aktualisiert Profil-Name, erstellt optional Search + Demo-Results
 
-### POST /api/create-payment-intent (app/api/create-payment-intent/route.ts)
-- **Auth:** Nein
-- **Request:** `{ search_id: string }`
-- **Erfolg (200):** `{ clientSecret: string }`
-- **Fehler (500):** `{ error: "Stripe ist nicht konfiguriert" }` oder `{ error: "Fehler beim Erstellen der Zahlung" }`
+### POST /api/create-payment-intent
+- **Auth:** Ja (Supabase Session)
+- **Rate-Limit:** 5/min pro IP
+- **Request:** `{ search_id }`
+- **Validierung:** Search muss dem authentifizierten User gehoeren und darf nicht bereits bezahlt sein
+- **Erfolg (200):** `{ clientSecret }`
 
-### POST /api/payment-confirm (app/api/payment-confirm/route.ts)
-- **Auth:** Nein
-- **Request:** `{ payment_intent_id: string, search_id: string }`
+### POST /api/payment-confirm
+- **Auth:** Nein (aber IDOR-geschuetzt via PaymentIntent metadata)
+- **Request:** `{ payment_intent_id, search_id }`
+- **Validierung:** `paymentIntent.metadata.search_id` muss mit `search_id` uebereinstimmen
 - **Erfolg (200):** `{ success: true }`
-- **Seiteneffekte:** Setzt `search.paid = true` in Storage (graceful bei Serverless-Fehler)
+- **Seiteneffekte:** Setzt `search.paid = true` in Supabase
 
-### POST /api/tts (app/api/tts/route.ts)
-- **Auth:** Nein
-- **Request:** `{ text: string }`
-- **Erfolg (200):** Audio-Stream (`Content-Type: audio/mpeg`)
+### POST /api/tts
+- **Auth:** Ja (Supabase Session)
+- **Rate-Limit:** 30/min pro IP
+- **Request:** `{ text }` (max 2000 Zeichen)
+- **Response:** Audio-Stream (`Content-Type: audio/mpeg`)
 - **Modell:** OpenAI `tts-1`, Stimme: `nova`, Format: MP3, Speed: 1.0
 
-### POST /api/upload (app/api/upload/route.ts)
+### GET/POST /api/conversations
 - **Auth:** Ja (Middleware)
-- **Request:** FormData mit `file` (JSON) + `search_id` (string)
-- **JSON-Format der Datei:** `[{ company_name, job_title, job_url, description }]`
-- **Seiteneffekte:** Loescht alte Results fuer search_id, erstellt neue, setzt `search.status = 'completed'`
+- **GET:** Liste aller Konversationen des Users
+- **POST:** Neue Konversation erstellen (mit 7-Tage-Cooldown-Pruefung)
+
+### GET/PUT /api/conversations/[id]
+- **Auth:** Ja (Middleware)
+- **GET:** Konversation mit Nachrichten + Results laden
+- **PUT:** Status/Titel/search_id aktualisieren
+
+### POST /api/conversations/[id]/messages
+- **Auth:** Ja (Middleware)
+- **Request:** `{ messages: Message[] }`
+- **Seiteneffekte:** Speichert Nachrichten + aktualisiert Konversations-Titel
+
+### POST /api/cv-check/analyze
+- **Auth:** Nein (Token-basiert)
+- **Request:** FormData mit `file` (PDF)
+- **Response:** `{ token, result: { overall_score, sections, strengths, improvements } }`
+
+### POST /api/cv-check/optimize
+- **Auth:** Ja (Middleware)
+- **Request:** `{ token }`
+- **Response:** `{ result: { optimized_cv, changes_summary } }`
+
+### POST /api/upload
+- **Auth:** Ja (Middleware)
+- **Request:** FormData mit `file` (JSON) + `search_id`
+- **Seiteneffekte:** Loescht alte Results, erstellt neue, setzt `search.status = 'completed'`
 
 ---
 
@@ -313,7 +354,7 @@ Navy (Text, dunkle Elemente):
 --color-navy:       #1A1A2E
 ```
 
-### 7.3 Animationen (tailwind.config.js:30-48)
+### 7.3 Animationen (tailwind.config.js)
 | Klasse | Dauer | Effekt |
 |---|---|---|
 | `animate-fade-in` | 0.6s | Opacity 0 -> 1 |
@@ -322,15 +363,45 @@ Navy (Text, dunkle Elemente):
 | `animate-float-delayed` | 6s, 3s delay, infinite | Wie float, versetzt |
 
 ### 7.4 UI-Konventionen
-- **Buttons (primaer):** `bg-[#F5B731] hover:bg-[#E8930C] text-white font-semibold rounded-xl`
+- **Buttons (primaer):** `bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl`
 - **Buttons (sekundaer):** `bg-[#1A1A2E] hover:bg-[#2D2D44] text-white rounded-xl`
 - **Inputs:** `bg-[#F9F5EE] border border-[#E8E0D4] rounded-xl text-sm focus:ring-[#F5B731]/40`
 - **Cards:** `bg-white rounded-2xl border border-[#E8E0D4]/80 shadow-xl shadow-black/5`
-- **Modals:** `bg-[#1a1a24] border border-white/10 rounded-2xl` (dunkles Theme)
+- **Modals (Payment):** `bg-[#1a1a24] border border-white/10 rounded-2xl` (dunkles Theme)
+- **Modals (Registration):** `bg-white rounded-2xl shadow-2xl` (helles Theme)
 - **Chat-Bubbles Bot:** `bg-[#F5F0E8] text-[#1A1A2E] rounded-2xl rounded-tl-md`
 - **Chat-Bubbles User:** `bg-[#F5B731] text-[#1A1A2E] rounded-2xl rounded-tr-md`
-- **Navbar:** `bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60`
-- **Error-Anzeige:** `bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl` (Modal) oder `bg-red-50 text-red-600 border-red-200` (Light-Pages)
+- **Navbar:** `bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60` (sticky, scroll-aware)
+- **Min-Touch-Target:** `min-h-[44px] min-w-[44px]` auf allen interaktiven Elementen
+- **Error (hell):** `bg-red-50 text-red-600 border-red-200 rounded-xl`
+- **Error (dunkel):** `bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl`
+- **Focus-Ring:** `focus-visible:ring-2 focus-visible:ring-[#F5B731] focus-visible:ring-offset-2`
+
+### 7.5 Navbar-Varianten (components/Navbar.tsx)
+| Variante | Verwendung | Elemente |
+|---|---|---|
+| `default` | Landing, Blog, CV-Check, Mein Pex, Legal | Logo + Center-Service-Links + User-Avatar-Dropdown (auth) / Login+CTA (guest) + Mobile-Panel |
+| `minimal` | Login-Seite | Nur Logo |
+| `back` | Detail-Ansichten | Logo + Zurueck-Button |
+
+**Default-Variante Features:**
+- Smart scroll-hide (Header verschwindet beim Runterscrollen, erscheint beim Hochscrollen)
+- Desktop: Center-Links aus `serviceNavItems` (+ `guestNavItems` fuer Gaeste), rechts Avatar-Dropdown oder Login/CTA
+- Mobile: Slide-from-right Panel mit Sektionen (Angebote, Mehr erfahren, Mein Bereich)
+- Avatar-Dropdown (auth): zeigt `userMenuItems` + Abmelden
+- Skip-Link, Focus-Trap, Escape-Key, Outside-Click-Close, Body-Scroll-Lock
+- Animated hamburger icon (3-bar -> X transition)
+
+### 7.6 Navigation-Config (lib/navigation.ts)
+| Export | Typ | Zweck |
+|---|---|---|
+| `serviceNavItems` | `NavItem[]` | Produkt-Angebote (Center Header): CV-Check, Blog, Mein Pex (authOnly) |
+| `guestNavItems` | `NavItem[]` | Landing-Anchor-Links (Center Header, nur Gaeste): Funktionen, So funktioniert's |
+| `userMenuItems` | `NavItem[]` | Avatar-Dropdown-Links (auth): Mein Pex, Meine CV-Ergebnisse |
+| `footerGroups` | `FooterGroup[]` | Footer-Spalten: Produkt, Ressourcen, Rechtliches |
+
+- Jedes `NavItem` hat: `href`, `label`, `iconPath` (required, 24x24 SVG path), `authOnly?`, `guestOnly?`, `anchorOnHome?`
+- Navbar baut `centerItems` dynamisch: auth -> `serviceNavItems`, guest -> `[...serviceNavItems, ...guestNavItems]`
 
 ---
 
@@ -346,141 +417,72 @@ Navy (Text, dunkle Elemente):
 1. Erstelle `app/api/<name>/route.ts`
 2. Exportiere `export async function POST(req: Request) { ... }`
 3. Verwende `NextResponse.json()` fuer JSON-Antworten
-4. Falls geschuetzt: Fuege Pattern zu `middleware.ts:19` matcher-Array hinzu
-5. Fehlermeldungen: Deutsch (R1)
-
-**Nach der Aenderung (14.4):** Dokumentiere was geaendert wurde und was bewusst nicht angefasst wurde.
+4. Rate-Limiting hinzufuegen: `import { rateLimit, getClientIp } from '@/lib/rate-limit'`
+5. Auth-Check: `const supabase = await createClient(); const { data: { user } } = await supabase.auth.getUser()`
+6. Admin-Operationen: `const admin = createAdminClient()` (umgeht RLS)
+7. Falls geschuetzt: Route in `middleware.ts` isProtected-Check UND matcher-Array eintragen
+8. Fehlermeldungen: Deutsch (R1)
 
 ### 8.2 Neues AI-Tool hinzufuegen
 
-**Vor dem Start (V1):** Klaere: Was soll das Tool tun? Welche Parameter? Braucht es eine Frontend-Reaktion (Modal, State-Update)?
-
 1. Oeffne `app/api/chat/route.ts`
-2. Fuege Tool in `tools`-Objekt ein (nach Zeile 24, innerhalb `streamText()`)
-3. Pattern (V4 -- halte es einfach):
+2. Fuege Tool in `tools`-Objekt ein (innerhalb `streamText()`)
+3. Pattern:
 ```typescript
 tool_name: tool({
   description: 'Deutsche Beschreibung was das Tool tut',
   parameters: z.object({
-    param: z.string().min(1)  // zod-Schema
+    param: z.string().min(1)
   }),
   execute: async (params) => {
-    // Logik -- keine Ueberkomplizierung
     return { action: 'frontend_action_name', ...data }
   }
 })
 ```
-4. Im Frontend (`chat/page.tsx`): useEffect hinzufuegen das `toolInvocations` ueberwacht und auf `action` reagiert (Pattern: Zeile 349-373)
+4. Im Frontend (`chat/[id]/page.tsx`): useEffect hinzufuegen das `toolInvocations` ueberwacht
 
-**Scope-Disziplin (V5):** Nur das Tool hinzufuegen, keine "Verbesserungen" an anderen Tools oder am System-Prompt.
-
-### 8.3 Neues Modal hinzufuegen
-
-**Vor dem Start (V1):** Klaere: Welches Tool triggert das Modal? Welche Daten werden angezeigt/gesammelt? Welche API wird aufgerufen?
-
-1. Definiere Modal-Komponente in `chat/page.tsx` (Pattern: RegistrationModal, Zeile 131-204)
-2. Fuege State hinzu: `const [showXxxModal, setShowXxxModal] = useState(false)`
-3. Fuege useEffect hinzu das auf Tool-Invocation reagiert
-4. Rendere Modal am Ende der ChatPage-Komponente (Zeile 811-812)
-5. Verwende dunkles Modal-Theme (R4)
-
-**Einfachheit (V4):** Die Chat-Seite ist bereits 815 Zeilen. Halte das Modal minimal. Kein Over-Engineering.
-
-### 8.4 Neue Seite hinzufuegen
-
-**Vor dem Start (V1):** Klaere: Soll die Seite geschuetzt sein? Client oder Server Component?
+### 8.3 Neue Seite hinzufuegen
 
 1. Erstelle `app/<seitenname>/page.tsx`
 2. Default-Export: React-Komponente
 3. Client-Komponenten: `'use client'` als erste Zeile
-4. Basis-Layout: `<div className="min-h-screen bg-[#FDF8F0]">` (R4)
-5. Falls geschuetzt: Pfad in `middleware.ts:19` matcher eintragen
+4. Verwende `<Navbar />` fuer Seiten mit Navigation
+5. Verwende `<Footer />` fuer Seiten mit Footer
+6. Basis-Layout: `<div className="min-h-screen bg-[#FDF8F0]">` (R4)
+7. Falls geschuetzt: Route in `middleware.ts` isProtected-Check UND matcher-Array eintragen
+
+### 8.4 Neue Nav-Links hinzufuegen
+
+1. Oeffne `lib/navigation.ts`
+2. Waehle das richtige Array:
+   - `serviceNavItems`: Produkt-Angebote (immer sichtbar im Header-Center)
+   - `guestNavItems`: Landing-Anchors (nur fuer nicht-eingeloggte User)
+   - `userMenuItems`: Avatar-Dropdown (nur fuer eingeloggte User)
+   - `footerGroups[].links`: Footer-Links
+3. `iconPath` ist Pflicht fuer NavItems (24x24 SVG stroke path)
+4. Optional: `authOnly: true`, `guestOnly: true`, `anchorOnHome: true`
+5. Navbar uebernimmt den neuen Link automatisch
 
 ### 8.5 System-Prompt aendern
 
-**Vorsicht (V2, V3):** Der System-Prompt steuert das gesamte Chat-Verhalten. Aenderungen koennen unbeabsichtigte Nebenwirkungen haben. Bei Unsicherheit: nachfragen.
+**Vorsicht (V2, V3):** Der System-Prompt steuert das gesamte Chat-Verhalten.
 
-- Datei: `app/api/chat/route.ts:115-197`
-- Der Prompt ist ein langer Template-String (Backticks)
+- Datei: `app/api/chat/route.ts`
+- Zwei Prompts: `systemPrompt` (auth) ab Zeile 79, anonymer Prompt ab Zeile 146
 - Struktur: 8 Phasen + Regeln-Block
-- Aenderungen am Prompt beeinflussen das gesamte Chat-Verhalten
-
-**Scope-Disziplin (V5):** Nur die angeforderte Phase/Regel aendern, nicht den gesamten Prompt "verbessern".
+- Auth-Prompt erhaelt User-Name und optional vorhandene search_id
 
 ### 8.6 Demo-Firmen aendern
-- Datei: `app/api/register/route.ts:7-18`
+- Datei: `lib/demo-data.ts`
 - Array `DEMO_COMPANIES`: `{ name: string, domain: string }`
-- Wird bei jeder Registrierung zufaellig gemischt, 7-10 werden ausgewaehlt
+- Wird bei jeder Suche zufaellig gemischt, 7-10 werden ausgewaehlt
 
-### 8.7 Styling global aendern
-- Farben: `tailwind.config.js` -> `theme.extend.colors`
-- Animationen: `tailwind.config.js` -> `theme.extend.animation` + `keyframes`
-- CSS-Variablen: `app/globals.css:5-11`
-- Scrollbar: `app/globals.css:25-40`
+### 8.7 Middleware aendern (Routen-Schutz)
 
-### 8.8 Neues Datenmodell hinzufuegen
-Siehe Abschnitt 4, "Regel: Neues Datenmodell hinzufuegen"
-
-### 8.9 Ableitungsbeispiele: Regeln in der Praxis
-
-Diese Beispiele zeigen, wie die Projekt-Regeln (R1-R7) und Verhaltensregeln (V1-V6, P1-P4) zusammenwirken:
-
-**Beispiel 1: "Fuege ein neues Feld `phone` zum User-Modell hinzu"**
-```
-ANNAHMEN (V1):
-1. Das Feld ist optional (nicht required)
-2. Keine Validierung im Frontend noetig (nur Backend)
-3. Keine Migration bestehender Daten noetig
-→ Korrigiere mich, oder ich fahre fort.
-
-PLAN (P4):
-1. User-Typ in lib/storage.ts erweitern (R3)
-2. Registration-API anpassen falls phone gesammelt werden soll
-3. Keine anderen Dateien anfassen (V5)
-→ Ausfuehrung.
-```
-
-**Beispiel 2: "Der Chat soll auch auf Englisch funktionieren"**
-```
-STOPP (V2): Das widerspricht R1 (UI immer Deutsch) und erfordert:
-- Aenderung am System-Prompt (R6)
-- Aenderung aller Fehlermeldungen in allen APIs
-- Moeglicherweise Spracherkennung/Auswahl-UI
-
-Das ist eine groessere Architektur-Entscheidung. Soll ich:
-a) Nur den System-Prompt zweisprachig machen?
-b) Einen Sprach-Toggle im UI implementieren?
-c) Automatische Spracherkennung?
-
-→ Bitte klaeren bevor ich fortfahre.
-```
-
-**Beispiel 3: "Mach den Code schoener"**
-```
-WIDERSPRECHEN (V3): "Schoener" ist kein messbares Ziel. Ich schlage vor:
-- Falls Performance: Konkrete Bottlenecks identifizieren
-- Falls Lesbarkeit: Spezifische Dateien/Funktionen nennen
-- Falls Konsistenz: ESLint/Prettier einrichten (siehe Abschnitt 11)
-
-Was genau stoert dich am aktuellen Code?
-```
-
-**Beispiel 4: Nach einem Refactoring**
-```
-AENDERUNGEN (14.4):
-- lib/storage.ts: getSearchById() hinzugefuegt fuer direkten Zugriff
-
-NICHT ANGEFASST (V5):
-- api/chat/route.ts: Nutzt weiter getSearches().find() -- koennte
-  optimiert werden, war aber nicht Teil der Anforderung
-
-DEAD CODE (V6):
-- Keine unbenutzten Elemente entstanden
-
-MOEGLICHE BEDENKEN:
-- getSearchById gibt undefined zurueck wenn nicht gefunden --
-  Aufrufer muss das pruefen
-```
+**WICHTIG:** `isProtected`-Check (Zeile 31-41) und `matcher`-Array (Zeile 55) muessen SYNCHRON sein!
+- `isProtected`: Bestimmt welche Routen einen Login-Redirect bekommen
+- `matcher`: Bestimmt fuer welche Routen die Middleware ueberhaupt ausgefuehrt wird
+- Beide muessen die gleichen Pfade abdecken, sonst entsteht ein Sicherheitsloch
 
 ---
 
@@ -491,24 +493,31 @@ MOEGLICHE BEDENKEN:
 |---|---|---|
 | `@ai-sdk/openai` | `import { openai } from '@ai-sdk/openai'` | `api/chat/route.ts` |
 | `ai` | `import { streamText, tool } from 'ai'` | `api/chat/route.ts` |
-| `ai/react` | `import { useChat } from 'ai/react'` | `chat/page.tsx` |
-| `next-auth` | `import { signIn } from 'next-auth/react'` | `login/page.tsx` |
-| `next-auth/middleware` | `import { withAuth } from 'next-auth/middleware'` | `middleware.ts` |
-| `bcryptjs` | `import bcrypt from 'bcryptjs'` | `api/register/route.ts` |
-| `nanoid` | `import { nanoid } from 'nanoid'` | `api/chat/route.ts`, `api/register/route.ts`, `api/upload/route.ts` |
+| `ai/react` | `import { useChat } from 'ai/react'` | `chat/page.tsx`, `chat/[id]/page.tsx` |
+| `@supabase/ssr` | `import { createServerClient, createBrowserClient } from '@supabase/ssr'` | `lib/supabase/`, `middleware.ts` |
+| `@supabase/supabase-js` | `import { createClient } from '@supabase/supabase-js'` | `lib/supabase/admin.ts` |
+| `nanoid` | `import { nanoid } from 'nanoid'` | `api/chat`, `api/register`, `lib/demo-data` |
 | `zod` | `import { z } from 'zod'` | `api/chat/route.ts` |
-| `stripe` | `import Stripe from 'stripe'` | `api/create-payment-intent/route.ts`, `api/payment-confirm/route.ts` |
-| `@stripe/react-stripe-js` | `import { Elements, PaymentElement, useStripe, useElements } from '...'` | `chat/page.tsx` |
-| `@stripe/stripe-js` | `import { loadStripe } from '@stripe/stripe-js'` | `chat/page.tsx` |
-| `openai` | `import OpenAI from 'openai'` | `api/tts/route.ts` |
-| `jspdf` | `import { jsPDF } from 'jspdf'` | `chat/page.tsx` |
+| `stripe` | `import Stripe from 'stripe'` | `api/create-payment-intent`, `api/payment-confirm` |
+| `@stripe/react-stripe-js` | `import { Elements, PaymentElement, useStripe, useElements } from '...'` | `chat/[id]/page.tsx` |
+| `@stripe/stripe-js` | `import { loadStripe } from '@stripe/stripe-js'` | `chat/[id]/page.tsx` |
+| `openai` | `import OpenAI from 'openai'` | `api/tts/route.ts`, `api/cv-check/` |
+| `jspdf` | `import { jsPDF } from 'jspdf'` | `chat/[id]/page.tsx` |
+| `pdf-parse` | `import pdfParse from 'pdf-parse'` | `api/cv-check/analyze` |
+| `docx` | `import { Document, Packer, ... } from 'docx'` | `api/cv-check/download` |
 
 ### 9.2 Interne Imports
 | Pfad | Exportiert | Importiert von |
 |---|---|---|
-| `@/lib/storage` | Typen (User, Search, Result) + CRUD-Funktionen | `api/chat`, `api/register`, `api/payment-confirm`, `api/upload` |
-| `@/lib/auth` | `authOptions` (NextAuthOptions) | `api/auth/[...nextauth]/route.ts` |
-| `@/components/SessionProvider` | `SessionProvider` | `app/layout.tsx` |
+| `@/lib/supabase/server` | `createClient()` | API-Routen (Server-Side) |
+| `@/lib/supabase/client` | `createClient()` | Client-Components |
+| `@/lib/supabase/admin` | `createAdminClient()` | API-Routen (Admin-Ops) |
+| `@/lib/hooks/useUser` | `useUser()` | Client-Components (Auth-State) |
+| `@/lib/navigation` | `serviceNavItems`, `guestNavItems`, `userMenuItems`, `footerGroups` | `Navbar.tsx`, `Footer.tsx` |
+| `@/lib/rate-limit` | `rateLimit()`, `getClientIp()` | API-Routen |
+| `@/lib/demo-data` | `generateDemoResults()`, `DEMO_COMPANIES` | `api/chat`, `api/register` |
+| `@/components/Navbar` | `Navbar` | Seiten mit Navigation |
+| `@/components/Footer` | `Footer` | Seiten mit Footer |
 
 ---
 
@@ -516,15 +525,12 @@ MOEGLICHE BEDENKEN:
 
 | Variable | Pflicht | Typ | Verwendet in |
 |---|---|---|---|
-| `OPENAI_API_KEY` | Ja | `sk-proj-...` | `api/chat` (implizit via @ai-sdk), `api/tts` (explizit) |
-| `NEXTAUTH_SECRET` | Ja | Base64-String | `lib/auth.ts` |
-| `NEXTAUTH_URL` | Ja | URL | NextAuth intern |
-| `DEMO_PASSWORD` | Ja | String | `lib/auth.ts:14` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Ja | URL | `lib/supabase/*`, `middleware.ts` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Ja | String | `lib/supabase/*`, `middleware.ts` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Ja | String | `lib/supabase/admin.ts` |
+| `OPENAI_API_KEY` | Ja | `sk-proj-...` | `api/chat` (implizit via @ai-sdk), `api/tts`, `api/cv-check/*` |
 | `STRIPE_SECRET_KEY` | Nein | `sk_test_...` | `api/create-payment-intent`, `api/payment-confirm` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Nein | `pk_test_...` | `chat/page.tsx:9` (Client-Side) |
-| `STRIPE_WEBHOOK_SECRET` | Nein | `whsec_...` | Nicht implementiert |
-| `NEXT_PUBLIC_SITE_URL` | Nein | URL | Meta-Tags |
-| `VERCEL` | Auto | `'1'` | `lib/storage.ts:8` (Serverless-Erkennung) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Nein | `pk_test_...` | `chat/[id]/page.tsx` (Client-Side) |
 
 ---
 
@@ -532,16 +538,14 @@ MOEGLICHE BEDENKEN:
 
 | # | Problem | Betroffene Dateien | Auswirkung |
 |---|---|---|---|
-| 1 | Kein persistenter Storage auf Vercel | `lib/storage.ts` | Daten gehen bei Cold Start verloren |
-| 2 | Keine Tests | -- | Kein Sicherheitsnetz bei Aenderungen |
-| 3 | Kein ESLint/Prettier | -- | Kein konsistentes Code-Format erzwungen |
-| 4 | Keine CI/CD | -- | Kein automatisierter Build/Test |
-| 5 | Demo-Auth (ein Passwort fuer alle) | `lib/auth.ts` | Keine echte User-Trennung |
-| 6 | Kein Rate-Limiting | `api/register`, `api/tts` | Missbrauch moeglich |
-| 7 | Stripe ohne Webhook-Verifizierung | `api/payment-confirm` | Payment-Status nur client-seitig bestaetigt |
-| 8 | Chat-Seite monolithisch (815 Zeilen) | `app/chat/page.tsx` | Schwer wartbar, koennte aufgeteilt werden |
-| 9 | Upload-Seite ohne Design-System | `app/upload/page.tsx` | Nutzt graue Tailwind-Defaults statt Cream-Theme |
-| 10 | `check_results`-Tool wird im Hauptflow nicht benoetigt | `api/chat/route.ts` | Results werden direkt in Chat-Nachricht eingebettet |
+| 1 | Keine Tests | -- | Kein Sicherheitsnetz bei Aenderungen |
+| 2 | Kein ESLint/Prettier | -- | Kein konsistentes Code-Format erzwungen |
+| 3 | Keine CI/CD | -- | Kein automatisierter Build/Test |
+| 4 | Rate-Limiting ist In-Memory (per Instance) | `lib/rate-limit.ts` | Nicht wirksam bei Multi-Instance Deployments |
+| 5 | Stripe ohne Webhook-Verifizierung | `api/payment-confirm` | Payment-Status wird client-seitig bestaetigt + metadata-validiert |
+| 6 | Chat-Seiten monolithisch | `chat/page.tsx` (898Z), `chat/[id]/page.tsx` (966Z) | Schwer wartbar, koennte aufgeteilt werden |
+| 7 | Upload-Seite ohne Design-System | `app/upload/page.tsx` | Nutzt graue Tailwind-Defaults statt Cream-Theme |
+| 8 | NavAuthButtons.tsx ist Dead Code | `components/NavAuthButtons.tsx` | Nicht mehr importiert seit Navbar-Redesign (auth im Navbar direkt) |
 
 ---
 
@@ -557,6 +561,8 @@ npm run start     # next start (Produktionsserver)
 - **Body-Size-Limit:** 10MB (`next.config.js` -> `serverActions.bodySizeLimit`)
 - **TypeScript:** Strict-Mode (`tsconfig.json`)
 - **Path-Alias:** `@/*` -> Projekt-Root
+- **Security Headers:** HSTS, X-Frame-Options DENY, CSP etc. (`next.config.js`)
+- **External Packages:** `pdf-parse`, `pdfjs-dist` (`next.config.js` -> `serverExternalPackages`)
 
 ---
 
@@ -564,16 +570,19 @@ npm run start     # next start (Produktionsserver)
 
 ```bash
 npm install
-cp .env.local.example .env.local   # Werte eintragen
+cp .env.local.example .env.local   # Supabase + OpenAI Keys eintragen
 npm run dev                         # http://localhost:3000
 ```
 
 **Wichtigste Dateien zum Lesen bei Aenderungen:**
-1. `app/chat/page.tsx` -- Chat-UI, State, Modals, Audio
-2. `app/api/chat/route.ts` -- AI-Logik, Tools, System-Prompt
-3. `lib/storage.ts` -- Datenmodelle, CRUD
-4. `app/api/register/route.ts` -- Registrierung, Demo-Ergebnisse
-5. `middleware.ts` -- Routen-Schutz (was geschuetzt ist, was nicht)
+1. `app/chat/page.tsx` -- Chat-Liste (auth) + Anonym-Chat (anon) + OTP-Registration
+2. `app/chat/[id]/page.tsx` -- Chat-Detail: Active + Completed + Payment + Audio
+3. `app/api/chat/route.ts` -- AI-Logik, Tools, System-Prompts
+4. `middleware.ts` -- Routen-Schutz (isProtected + matcher muessen synchron sein!)
+5. `components/Navbar.tsx` -- Shared Navigation (3 Varianten)
+6. `lib/navigation.ts` -- Zentrale Nav-Config
+7. `lib/hooks/useUser.ts` -- Auth-State Hook
+8. `lib/supabase/*.ts` -- Supabase-Client-Konfiguration
 
 **Bevor du Code schreibst:**
 1. Lies Abschnitt 14 (Arbeitsweise und Verhaltensprinzipien)
@@ -603,13 +612,13 @@ Bevor du etwas Nicht-Triviales implementierst, formuliere deine Annahmen explizi
 ANNAHMEN:
 1. [Annahme]
 2. [Annahme]
-→ Korrigiere mich jetzt, oder ich fahre damit fort.
+-> Korrigiere mich jetzt, oder ich fahre damit fort.
 ```
 
 Fuelle NIEMALS stillschweigend unklare Anforderungen aus. Der haeufigste Fehler ist, falsche Annahmen zu treffen und unkorrigiert weiterzuarbeiten. Unsicherheit frueh sichtbar machen.
 
 #### V2: Verwirrung managen (Prioritaet: KRITISCH)
-Wenn du auf Inkonsistenzen, widersprüchliche Anforderungen oder unklare Spezifikationen stoesst:
+Wenn du auf Inkonsistenzen, widerspruechliche Anforderungen oder unklare Spezifikationen stoesst:
 
 1. **STOPP.** Nicht mit einer Vermutung weiterarbeiten.
 2. Die spezifische Verwirrung benennen.
@@ -689,7 +698,7 @@ PLAN:
 1. [Schritt] -- [Warum]
 2. [Schritt] -- [Warum]
 3. [Schritt] -- [Warum]
-→ Ausfuehrung, sofern keine Umleitung.
+-> Ausfuehrung, sofern keine Umleitung.
 ```
 
 Das faengt falsche Richtungen ab, bevor darauf aufgebaut wird.
@@ -724,7 +733,7 @@ MOEGLICHE BEDENKEN:
 
 ### 14.5 Fehlermodi vermeiden
 
-Diese subtilen Fehler eines "leicht schlampigen, hastigen Junior-Entwicklers" aktiv vermeiden:
+Diese subtilen Fehler aktiv vermeiden:
 
 1. Falsche Annahmen treffen ohne zu pruefen
 2. Eigene Verwirrung nicht managen
@@ -738,3 +747,4 @@ Diese subtilen Fehler eines "leicht schlampigen, hastigen Junior-Entwicklers" ak
 10. Dead Code nach Refactors nicht aufraeumen
 11. Kommentare/Code aendern, die nichts mit der Aufgabe zu tun haben
 12. Dinge entfernen, die man nicht vollstaendig versteht
+13. Middleware isProtected und matcher nicht synchron halten
