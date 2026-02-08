@@ -28,7 +28,7 @@ export const serviceNavItems: NavItem[] = [
   },
   {
     href: '/cv-check',
-    label: 'CV-Check',
+    label: 'Lebenslauf-Check',
     iconPath: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   },
   {
@@ -59,7 +59,7 @@ export const userMenuItems: NavItem[] = [
   },
   {
     href: '/cv-check',
-    label: 'Meine CV-Ergebnisse',
+    label: 'Meine Lebenslauf-Ergebnisse',
     authOnly: true,
     iconPath: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   },
@@ -94,7 +94,7 @@ export const footerGroups: FooterGroup[] = [
     title: 'Produkt',
     links: [
       { href: '/mein-pex', label: 'Mein Pex' },
-      { href: '/cv-check', label: 'CV-Check' },
+      { href: '/cv-check', label: 'Lebenslauf-Check' },
       { href: '/#funktionen', label: 'Funktionen' },
       { href: '/#so-funktionierts', label: "So funktioniert\u2019s" },
     ],

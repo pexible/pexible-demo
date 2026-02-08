@@ -606,20 +606,10 @@ function AnonymousChatView() {
 
   return (
     <div className="h-screen-safe bg-[#FDF8F0] text-[#1A1A2E] flex flex-col overflow-hidden">
-      {/* Navbar */}
-      <nav className="flex-shrink-0 z-40 bg-[#FDF8F0]/80 backdrop-blur-xl border-b border-[#E8E0D4]/60">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold italic text-[#1A1A2E] tracking-tight">pexible</Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/login" className="text-sm font-medium text-[#4A5568] hover:text-[#1A1A2E] transition-colors px-3 py-2.5 min-h-[44px] flex items-center">
-              Anmelden
-            </Link>
-            <Link href="/login" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors">
-              Los geht's
-            </Link>
-          </div>
-        </div>
-      </nav>
+      {/* Global Navbar */}
+      <div className="flex-shrink-0">
+        <Navbar />
+      </div>
 
       {/* Chat Section */}
       <section className="flex-1 flex flex-col relative px-3 sm:px-4 pt-2 sm:pt-10 pb-1 sm:pb-8 min-h-0 overflow-hidden">

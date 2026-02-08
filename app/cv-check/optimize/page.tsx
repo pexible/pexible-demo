@@ -260,9 +260,9 @@ function OptimizeContent() {
   if (!token) {
     return (
       <div className="text-center py-20">
-        <p className="text-[#4A5568] mb-4">Kein CV-Token gefunden. Bitte starte mit einem CV-Check.</p>
+        <p className="text-[#4A5568] mb-4">Kein CV-Token gefunden. Bitte starte mit einem Lebenslauf-Check.</p>
         <Link href="/cv-check" className="text-[#F5B731] hover:text-[#E8930C] font-medium">
-          Zum CV-Check →
+          Zum Lebenslauf-Check →
         </Link>
       </div>
     )
@@ -292,7 +292,7 @@ function OptimizeContent() {
           {optimizationError}
         </div>
         <Link href="/cv-check" className="text-[#F5B731] hover:text-[#E8930C] font-medium text-sm">
-          Zurück zum CV-Check
+          Zurück zum Lebenslauf-Check
         </Link>
       </div>
     )
@@ -324,7 +324,7 @@ function OptimizeContent() {
                 href="/cv-check"
                 className="inline-block mt-3 text-[#F5B731] hover:text-[#E8930C] font-medium transition-colors"
               >
-                Zurück zum CV-Check →
+                Zurück zum Lebenslauf-Check →
               </Link>
             )}
           </div>

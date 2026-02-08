@@ -14,7 +14,7 @@ const ROUTE_MAP: Record<string, { label: string; parent?: string }> = {
   '/mein-pex': { label: 'Mein Pex' },
   '/jobs': { label: 'Meine Jobsuchen', parent: '/mein-pex' },
   '/jobs/neu': { label: 'Neue Jobsuche', parent: '/jobs' },
-  '/cv-check': { label: 'CV-Check', parent: '/mein-pex' },
+  '/cv-check': { label: 'Lebenslauf-Check', parent: '/mein-pex' },
   '/mein-pex/einstellungen': { label: 'Einstellungen', parent: '/mein-pex' },
 }
 
