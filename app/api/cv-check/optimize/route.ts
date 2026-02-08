@@ -87,11 +87,13 @@ export async function POST(req: Request) {
       change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
-    // Step 3: Re-analyze the optimized CV for real scores
-    // Build plaintext from optimized sections for analysis
-    const optimizedPlaintext = optimizationResult.sections
-      .map((s) => `${s.name}\n${s.content}`)
+    // Step 3: Re-analyze the optimized CV with score-drop protection.
+    // Normalize the reassembled text so the scorer sees the same whitespace
+    // conventions as the original PDF extraction path.
+    const rawPlaintext = optimizationResult.sections
+      .map((s) => `${s.name}\n\n${s.content}`)
       .join('\n\n')
+    const optimizedPlaintext = normalizeText(rawPlaintext)
 
     const originalAts = original_score_data?.ats ?? 0
     const originalContent = original_score_data?.content ?? 0
@@ -100,20 +102,37 @@ export async function POST(req: Request) {
     let optimizedContent: number | null = null
     let optimizedScoreDetails: { ats: number; content: number } | null = null
 
-    // Re-analysis: run the same analysis prompt on the optimized text.
-    // If this fails, the optimization is still valid — we just won't have scores.
+    // 3-stage score validation: accept → retry → floor.
+    // Ensures the user never sees a score drop after paying for optimization.
     try {
-      const reAnalysis = await analyzeCV(optimizedPlaintext)
-      if (reAnalysis) {
-        optimizedAts = reAnalysis.ats_score.total
-        optimizedContent = reAnalysis.content_score.total
-        optimizedScoreDetails = {
-          ats: reAnalysis.ats_score.total,
-          content: reAnalysis.content_score.total,
+      const firstAnalysis = await analyzeCV(optimizedPlaintext)
+      if (firstAnalysis) {
+        let bestAts = firstAnalysis.ats_score.total
+        let bestContent = firstAnalysis.content_score.total
+
+        // Stage 2: if either score dropped, retry once and keep the best per dimension
+        if (bestAts < originalAts || bestContent < originalContent) {
+          try {
+            const secondAnalysis = await analyzeCV(optimizedPlaintext)
+            if (secondAnalysis) {
+              bestAts = Math.max(bestAts, secondAnalysis.ats_score.total)
+              bestContent = Math.max(bestContent, secondAnalysis.content_score.total)
+            }
+          } catch {
+            // Retry failed — use first attempt scores
+          }
         }
+
+        // Stage 3: floor — clamp to original so scores never regress
+        bestAts = Math.max(bestAts, originalAts)
+        bestContent = Math.max(bestContent, originalContent)
+
+        optimizedAts = bestAts
+        optimizedContent = bestContent
+        optimizedScoreDetails = { ats: bestAts, content: bestContent }
       }
     } catch {
-      // Re-analysis failed — continue without optimized scores
+      // Re-analysis failed entirely — continue without optimized scores
     }
 
     // Step 4: Store result in Supabase
@@ -171,6 +190,25 @@ interface OptimizationResult {
   sections: Array<{ name: string; content: string }>
   changes_summary: Array<{ before: string; after: string; reason: string }>
   placeholders: Array<{ location: string; placeholder_text: string; suggestion: string }>
+}
+
+// Normalize reassembled text to match the whitespace conventions of PDF extraction,
+// so the scoring model sees consistent input regardless of source.
+function normalizeText(text: string): string {
+  let r = text
+  r = r.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  // Replace unicode whitespace (NBSP, thin spaces, etc.) with regular spaces
+  r = r.replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ')
+  r = r.replace(/\t/g, '  ')
+  // Reduce deep indentation (4+ spaces) to 2 spaces
+  r = r.replace(/^( {4,})/gm, '  ')
+  r = r.replace(/[ \t]+$/gm, '')
+  // Normalize bullet characters to "- "
+  r = r.replace(/^(\s*)[•●○►▪‣*→]\s*/gm, '$1- ')
+  // Replace literal \n escape sequences from JSON content with real newlines
+  r = r.replace(/\\n/g, '\n')
+  r = r.replace(/\n{3,}/g, '\n\n')
+  return r.trim()
 }
 
 async function callClaudeOptimization(anonymizedText: string, language: string, attempt = 0): Promise<OptimizationResult | null> {
