@@ -570,7 +570,7 @@ function AnonymousChatView() {
               Anmelden
             </Link>
             <Link href="/login" className="text-sm font-semibold bg-[#1A1A2E] text-white px-5 py-2.5 min-h-[44px] flex items-center rounded-full hover:bg-[#2D2D44] transition-colors">
-              Konto erstellen
+              Los geht's
             </Link>
           </div>
         </div>
@@ -653,7 +653,7 @@ function AnonymousChatView() {
                           className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] bg-[#F5B731] hover:bg-[#E8930C] text-[#1A1A2E] font-semibold rounded-xl transition-colors text-sm shadow-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                          Kostenlos registrieren
+                          Los geht's
                         </button>
                         <button
                           onClick={() => { window.location.href = '/' }}

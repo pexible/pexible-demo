@@ -103,7 +103,7 @@ export default function LandingPage() {
               href="/jobs"
               className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-[#1A1A2E] text-white font-semibold rounded-full hover:bg-[#2D2D44] transition-all text-sm shadow-lg shadow-[#1A1A2E]/10"
             >
-              Kostenlos starten
+              Los geht's
             </Link>
             <a
               href="#so-funktionierts"
@@ -503,7 +503,7 @@ export default function LandingPage() {
               <p className="text-[#9CA3AF] mb-8 max-w-md mx-auto">Starte jetzt deine kostenlose Suche und entdecke Stellen, die du auf keinem Portal findest.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link href="/jobs" className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center bg-[#F5B731] text-[#1A1A2E] font-semibold rounded-full hover:bg-[#E8930C] transition-colors text-sm shadow-lg shadow-[#F5B731]/20">
-                  Kostenlos starten
+                  Los geht's
                 </Link>
                 <a href="#so-funktionierts" className="w-full sm:w-auto text-center px-8 py-3.5 min-h-[48px] flex items-center justify-center text-white/80 hover:text-white font-medium rounded-full border border-white/20 hover:border-white/40 transition-all text-sm">
                   Mehr erfahren
