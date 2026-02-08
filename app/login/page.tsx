@@ -24,7 +24,7 @@ function LoginContent() {
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || '/chat'
+  const redirectTo = searchParams.get('redirect') || '/mein-pex'
 
   const [step, setStep] = useState<Step>('email')
   const [email, setEmail] = useState('')
