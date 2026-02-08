@@ -8,7 +8,8 @@ import { retrieveToken, deleteToken } from '@/lib/cv-token-store'
 import { reinsertContactData } from '@/lib/cv-anonymize'
 import { CV_OPTIMIZATION_SYSTEM_PROMPT } from '@/lib/cv-prompts'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
-import { analyzeCV } from '@/lib/cv-analysis'
+import { reassembleOptimizedText } from '@/lib/cv-text-normalize'
+import { validateOptimizedScores } from '@/lib/cv-score-validation'
 
 export const maxDuration = 60 // Allow up to 60 seconds for this route
 
@@ -87,34 +88,18 @@ export async function POST(req: Request) {
       change.after = reinsertContactData(change.after, tokenEntry.originalContactData)
     }
 
-    // Step 3: Re-analyze the optimized CV for real scores
-    // Build plaintext from optimized sections for analysis
-    const optimizedPlaintext = optimizationResult.sections
-      .map((s) => `${s.name}\n${s.content}`)
-      .join('\n\n')
+    // Step 3: Re-analyze with 3-stage score validation (accept → retry → floor)
+    const optimizedPlaintext = reassembleOptimizedText(optimizationResult.sections)
 
     const originalAts = original_score_data?.ats ?? 0
     const originalContent = original_score_data?.content ?? 0
 
-    let optimizedAts: number | null = null
-    let optimizedContent: number | null = null
-    let optimizedScoreDetails: { ats: number; content: number } | null = null
-
-    // Re-analysis: run the same analysis prompt on the optimized text.
-    // If this fails, the optimization is still valid — we just won't have scores.
-    try {
-      const reAnalysis = await analyzeCV(optimizedPlaintext)
-      if (reAnalysis) {
-        optimizedAts = reAnalysis.ats_score.total
-        optimizedContent = reAnalysis.content_score.total
-        optimizedScoreDetails = {
-          ats: reAnalysis.ats_score.total,
-          content: reAnalysis.content_score.total,
-        }
-      }
-    } catch {
-      // Re-analysis failed — continue without optimized scores
-    }
+    const validated = await validateOptimizedScores(optimizedPlaintext, originalAts, originalContent)
+    const optimizedAts = validated.ats
+    const optimizedContent = validated.content
+    const optimizedScoreDetails = optimizedAts !== null && optimizedContent !== null
+      ? { ats: optimizedAts, content: optimizedContent }
+      : null
 
     // Step 4: Store result in Supabase
     const resultId = nanoid()
@@ -185,7 +170,7 @@ async function callClaudeOptimization(anonymizedText: string, language: string, 
     const client = new Anthropic()
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 6144,
       temperature: 0,
       system: CV_OPTIMIZATION_SYSTEM_PROMPT,
       messages: [
